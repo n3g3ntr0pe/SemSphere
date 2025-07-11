@@ -48,6 +48,7 @@ const ConcreteAbstractSphere = () => {
   const [wordData, setWordData] = useState<Record<string, WordAnalysis>>({});
   const [sentencePaths, setSentencePaths] = useState<SentencePath[]>([]);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [targetZoomLevel, setTargetZoomLevel] = useState(1);
   const [showLayers, setShowLayers] = useState(true);
   const [showWaveVisualization, setShowWaveVisualization] = useState(false);
 
@@ -479,18 +480,6 @@ const ConcreteAbstractSphere = () => {
   const [cameraAngle, setCameraAngle] = useState(0);
   const [cameraElevation, setCameraElevation] = useState(0);
 
-  // Update camera position when zoom or angles change
-  useEffect(() => {
-    if (!cameraRef.current) return;
-    
-    const camera = cameraRef.current;
-    const distance = 20 / zoomLevel;
-    camera.position.x = distance * Math.cos(cameraElevation) * Math.cos(cameraAngle);
-    camera.position.y = distance * Math.sin(cameraElevation);
-    camera.position.z = distance * Math.cos(cameraElevation) * Math.sin(cameraAngle);
-    camera.lookAt(0, 0, 0);
-  }, [zoomLevel, cameraAngle, cameraElevation]);
-
   useEffect(() => {
     if (!mountRef.current) return;
 
@@ -557,8 +546,9 @@ const ConcreteAbstractSphere = () => {
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
-      const newZoom = Math.max(0.1, Math.min(20, zoomLevel - event.deltaY * 0.005));
-      setZoomLevel(newZoom);
+      const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1; // Smoother zoom steps
+      const newTargetZoom = Math.max(0.1, Math.min(20, targetZoomLevel * zoomFactor));
+      setTargetZoomLevel(newTargetZoom);
     };
 
     renderer.domElement.addEventListener('mousedown', onMouseDown);
@@ -568,6 +558,26 @@ const ConcreteAbstractSphere = () => {
 
     const animate = () => {
       requestAnimationFrame(animate);
+      
+      // Smooth zoom interpolation
+      const zoomSpeed = 0.1; // Adjust for different smoothness (0.1 = smooth, 0.5 = faster)
+      const currentZoom = zoomLevel;
+      const newZoom = currentZoom + (targetZoomLevel - currentZoom) * zoomSpeed;
+      
+      // Only update if there's a meaningful difference
+      if (Math.abs(newZoom - currentZoom) > 0.001) {
+        setZoomLevel(newZoom);
+      }
+      
+      // Update camera position smoothly
+      if (cameraRef.current) {
+        const distance = 20 / newZoom;
+        cameraRef.current.position.x = distance * Math.cos(cameraElevation) * Math.cos(cameraAngle);
+        cameraRef.current.position.y = distance * Math.sin(cameraElevation);
+        cameraRef.current.position.z = distance * Math.cos(cameraElevation) * Math.sin(cameraAngle);
+        cameraRef.current.lookAt(0, 0, 0);
+      }
+      
       renderer.render(scene, camera);
     };
     animate();
