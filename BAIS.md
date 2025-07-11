@@ -31,6 +31,13 @@ Web search capabilities include information gathering, technical documentation, 
 - `System.InvalidOperationException: Cannot locate the offset in the rendered text`
 - Buffer width/height mismatches during command execution
 
+**⚠️ CRITICAL DISCOVERY - PowerShell Session Accumulation Pattern** (SemSphere Project - 2025-01-11):
+- **Hidden Resource Drain**: 25 PowerShell processes consuming 2.3GB RAM discovered during cleanup
+- **Root Cause**: PSReadLine buffer conflicts trigger new shell creation for subsequent commands
+- **Cascade Effect**: Each unstable shell spawns replacement instances, creating exponential accumulation
+- **Performance Impact**: 92% process reduction freed 2.1GB RAM, revealing massive hidden resource consumption
+- **Trigger Events**: Background process failures, command timeouts, buffer management errors all create new shells
+
 **Development Server Management**: Long-running services like Vite development servers require special handling:
 - **Blocking Issue**: `npm run dev` with `is_background: false` creates infinite wait state
 - **UI Contamination**: Multiple background instances may leak output to editor context
@@ -71,6 +78,12 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd PROJECT_PATH; 
 - Use automation for status checking and process cleanup only
 - Implement proper process lifecycle management with PID tracking
 - Avoid nested background executions to prevent session overlap
+
+**PowerShell Session Accumulation Prevention**:
+- **Weekly Cleanup Protocol**: `tasklist | findstr powershell | measure-object` to monitor count
+- **Proactive Termination**: `Get-Process powershell | Where-Object {$_.Id -ne $PID} | Stop-Process -Force`
+- **PSReadLine Mitigation**: `Set-PSReadLineOption -PredictionSource None` to reduce buffer conflicts
+- **Resource Monitoring**: Track system memory usage patterns during development sessions
 
 **✅ REAL-WORLD VALIDATION** (SemSphere Project - 2025-01-11):
 - **Scenario**: Dual MCP server instance detected exactly as warned in documentation
