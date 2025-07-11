@@ -48,27 +48,57 @@ This might indicate another process started using this port after our check.
 
 **Root Cause**: Multiple server instances running simultaneously from previous sessions
 
-**Solution Process:**
+**✅ REAL-WORLD VALIDATED Solution Process:**
 1. **Identify conflicting processes**:
    ```powershell
    netstat -ano | findstr ":302"  # Check ports 3025, 3026
+   tasklist | findstr node        # Identify all Node.js processes
    ```
 
-2. **Kill existing processes**:
+2. **Strategic cleanup options**:
+   - **Option A - Nuclear Reset**: `taskkill /F /IM node.exe` (kills ALL Node.js processes)
+   - **Option B - Surgical**: `taskkill /F /PID [specific_pid]` (target specific server)
+   - **Option C - Selective**: Kill only conflicting MCP servers, preserve other processes
+
+3. **Selective cleanup procedure** (RECOMMENDED):
    ```powershell
-   taskkill /PID [process_id] /F
+   # Identify MCP server PIDs
+   netstat -ano | findstr ":3025"  # Get PID from LISTENING entry
+   netstat -ano | findstr ":3026"  # Check fallback port
+   
+   # Terminate only MCP servers
+   taskkill /F /PID [port_3025_pid]
+   taskkill /F /PID [port_3026_pid]
    ```
 
-3. **Start fresh server**:
+4. **Clean restart protocol**:
    ```powershell
+   # Wait for TIME_WAIT clearance
+   Start-Sleep -Seconds 30
+   
+   # Start single server instance
    npx @agentdeskai/browser-tools-server@latest
-   ```
-
-4. **Verify successful startup**:
-   ```powershell
+   
+   # Verify single server binding
    netstat -ano | findstr :3025
    Test-NetConnection -ComputerName localhost -Port 3025
    ```
+
+### Dual Server Detection & Resolution
+
+**Critical Learning**: Multiple MCP server instances create exactly the process conflicts warned about in BAIS.md Terminal Session Management.
+
+**Symptoms of Dual Server Scenario**:
+- Primary server on port 3025 with established WebSocket connections
+- Fallback server on port 3026 due to "port in use" detection
+- Terminal shows both "heartbeat" messages and "fallback port" notifications
+- Multiple node.exe processes consuming 75-125MB each
+
+**Proven Resolution Strategy**:
+1. **Selective Termination**: Preserve development servers (React, etc.)
+2. **Process Validation**: Verify which PIDs correspond to MCP servers
+3. **Clean Restart**: Single server instance with proper port binding
+4. **Success Verification**: Confirm Chrome extension reconnection
 
 ### Success Indicators vs Error Symptoms
 

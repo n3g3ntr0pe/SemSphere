@@ -59,11 +59,25 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd PROJECT_PATH; 
 3. **Restart**: Background execution with separate readiness validation
 4. **Verification**: HTTP status checks and port monitoring
 
+**✅ LIFECYCLE PATTERN VALIDATION** (SemSphere Project - 2025-01-11):
+- **Detection Phase**: Successfully identified dual server scenario (PID 24288 & 44280)
+- **Selective Termination**: Preserved development processes while eliminating conflicts
+- **Restart Protocol**: Clean single server initialization on primary port 3025
+- **Verification Success**: Chrome extension reconnection confirmed system operational
+- **Process Efficiency**: Reduced Node.js processes from 6 to 4 while maintaining functionality
+
 **Best Practices**:
 - Prefer manual terminal management for persistent development servers
 - Use automation for status checking and process cleanup only
 - Implement proper process lifecycle management with PID tracking
 - Avoid nested background executions to prevent session overlap
+
+**✅ REAL-WORLD VALIDATION** (SemSphere Project - 2025-01-11):
+- **Scenario**: Dual MCP server instance detected exactly as warned in documentation
+- **Symptoms**: Port 3025 (primary) + Port 3026 (fallback) both active, process duplication
+- **Resolution**: Selective cleanup strategy preserved development environment
+- **Outcome**: 6 Node.js processes reduced to 4, React dev server preserved, single MCP server operational
+- **Validation**: BAIS.md procedures correctly predicted and resolved the exact failure mode
 
 ## SAFETY_PROTOCOL - Command Framework & Restrictions
 
