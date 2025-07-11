@@ -48,7 +48,7 @@ const ConcreteAbstractSphere = () => {
   const [wordData, setWordData] = useState<Record<string, WordAnalysis>>({});
   const [sentencePaths, setSentencePaths] = useState<SentencePath[]>([]);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [targetZoomLevel, setTargetZoomLevel] = useState(1);
+  const targetZoomRef = useRef(1);
   const [showLayers, setShowLayers] = useState(true);
   const [showWaveVisualization, setShowWaveVisualization] = useState(false);
 
@@ -477,8 +477,8 @@ const ConcreteAbstractSphere = () => {
   };
 
   // Camera control state
-  const [cameraAngle, setCameraAngle] = useState(0);
-  const [cameraElevation, setCameraElevation] = useState(0);
+  const cameraAngleRef = useRef(0);
+  const cameraElevationRef = useRef(0);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -537,8 +537,8 @@ const ConcreteAbstractSphere = () => {
       const deltaX = event.clientX - mouseX;
       const deltaY = event.clientY - mouseY;
       
-      setCameraAngle(prev => prev + deltaX * 0.003);
-      setCameraElevation(prev => Math.max(-Math.PI/3, Math.min(Math.PI/3, prev - deltaY * 0.003)));
+      cameraAngleRef.current = cameraAngleRef.current + deltaX * 0.003;
+      cameraElevationRef.current = Math.max(-Math.PI/3, Math.min(Math.PI/3, cameraElevationRef.current - deltaY * 0.003));
       
       mouseX = event.clientX;
       mouseY = event.clientY;
@@ -547,8 +547,8 @@ const ConcreteAbstractSphere = () => {
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1; // Smoother zoom steps
-      const newTargetZoom = Math.max(0.1, Math.min(20, targetZoomLevel * zoomFactor));
-      setTargetZoomLevel(newTargetZoom);
+      const newTargetZoom = Math.max(0.1, Math.min(20, targetZoomRef.current * zoomFactor));
+      targetZoomRef.current = newTargetZoom;
     };
 
     renderer.domElement.addEventListener('mousedown', onMouseDown);
@@ -562,7 +562,8 @@ const ConcreteAbstractSphere = () => {
       // Smooth zoom interpolation
       const zoomSpeed = 0.1; // Adjust for different smoothness (0.1 = smooth, 0.5 = faster)
       const currentZoom = zoomLevel;
-      const newZoom = currentZoom + (targetZoomLevel - currentZoom) * zoomSpeed;
+      const targetZoom = targetZoomRef.current;
+      const newZoom = currentZoom + (targetZoom - currentZoom) * zoomSpeed;
       
       // Only update if there's a meaningful difference
       if (Math.abs(newZoom - currentZoom) > 0.001) {
@@ -572,9 +573,11 @@ const ConcreteAbstractSphere = () => {
       // Update camera position smoothly
       if (cameraRef.current) {
         const distance = 20 / newZoom;
-        cameraRef.current.position.x = distance * Math.cos(cameraElevation) * Math.cos(cameraAngle);
-        cameraRef.current.position.y = distance * Math.sin(cameraElevation);
-        cameraRef.current.position.z = distance * Math.cos(cameraElevation) * Math.sin(cameraAngle);
+        const angle = cameraAngleRef.current;
+        const elevation = cameraElevationRef.current;
+        cameraRef.current.position.x = distance * Math.cos(elevation) * Math.cos(angle);
+        cameraRef.current.position.y = distance * Math.sin(elevation);
+        cameraRef.current.position.z = distance * Math.cos(elevation) * Math.sin(angle);
         cameraRef.current.lookAt(0, 0, 0);
       }
       
