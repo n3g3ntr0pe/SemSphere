@@ -20,13 +20,13 @@ The Browser MCP system consists of 4 interconnected components:
 ┌─────────────┐     ┌──────────────┐     ┌───────────────┐     ┌─────────────┐
 │   Cursor    │ ◄──► │  MCP Server  │ ◄──► │  Middleware   │ ◄──► │   Chrome    │
 │   (AI)      │     │  (Protocol   │     │  Server       │     │  Extension  │
-│             │     │   Handler)   │     │ (Port 3026)   │     │             │
+│             │     │   Handler)   │     │ (Port 3025)   │     │             │
 └─────────────┘     └──────────────┘     └───────────────┘     └─────────────┘
 ```
 
 **Component Responsibilities:**
 1. **Chrome Extension**: Captures browser data (DOM, console logs, network requests, screenshots)
-2. **Middleware Server**: Processes and aggregates browser information on port 3026
+2. **Middleware Server**: Processes and aggregates browser information on port 3025 (fallback: 3026)
 3. **MCP Server**: Provides standardized AI tool interface via Cursor configuration
 4. **Cursor Integration**: Enables natural language browser interaction
 
@@ -35,6 +35,146 @@ The Browser MCP system consists of 4 interconnected components:
 - Middleware server running: `npx @agentdeskai/browser-tools-server@latest`
 - DevTools BrowserTools tab active
 - Extension permissions set to "On all sites"
+
+## Critical Browser Tools MCP Troubleshooting Guide
+
+### Port Conflict Resolution (Most Common Issue)
+
+**Problem**: Server fails to start due to port conflicts
+```
+ERROR: Port 3026 is still in use, despite our checks!
+This might indicate another process started using this port after our check.
+```
+
+**Root Cause**: Multiple server instances running simultaneously from previous sessions
+
+**Solution Process:**
+1. **Identify conflicting processes**:
+   ```powershell
+   netstat -ano | findstr ":302"  # Check ports 3025, 3026
+   ```
+
+2. **Kill existing processes**:
+   ```powershell
+   taskkill /PID [process_id] /F
+   ```
+
+3. **Start fresh server**:
+   ```powershell
+   npx @agentdeskai/browser-tools-server@latest
+   ```
+
+4. **Verify successful startup**:
+   ```powershell
+   netstat -ano | findstr :3025
+   Test-NetConnection -ComputerName localhost -Port 3025
+   ```
+
+### Success Indicators vs Error Symptoms
+
+**✅ SERVER WORKING CORRECTLY:**
+```
+=== Browser Tools Server Started ===
+Aggregator listening on http://0.0.0.0:3025
+Chrome extension connected via WebSocket
+Received current URL update request: {...}
+Processing console-log log entry
+Adding console error: {...}
+Received WebSocket message: { type: 'heartbeat', data: undefined }
+```
+
+**❌ BROWSER CONSOLE ERRORS (Connection Issues):**
+```
+GET http://localhost:3006/ net::ERR_CONNECTION_REFUSED
+```
+
+**🔍 CRITICAL INSIGHT**: DevTools application errors (like `RegisterClientLocalizationsError`) are **PROOF the system is working** - they're being captured and reported by the MCP system!
+
+### Chrome Extension Connection States
+
+**Extension Connection Flow:**
+1. **Initial Connection**: Extension attempts WebSocket connection to server
+2. **Handshake**: Server logs "Chrome extension connected via WebSocket"
+3. **Data Flow**: URL updates, console logs, network requests start flowing
+4. **Heartbeat**: Regular `{ type: 'heartbeat' }` messages maintain connection
+
+**Troubleshooting Extension Issues:**
+- **No connection**: Check server is running on correct port
+- **Intermittent connection**: Verify extension permissions set to "On all sites"
+- **Data not flowing**: Refresh DevTools BrowserTools tab
+- **Wrong port**: Extension may cache old port - restart Chrome
+
+### Port Priority and Fallback Behavior
+
+**Default Port Logic:**
+1. **Primary**: Port 3025 (server's preferred port)
+2. **Fallback**: Port 3026 (when 3025 in use)
+3. **Failure**: If both ports occupied, server fails to start
+
+**Historical Port Confusion:**
+- Documentation may reference port 3026 (fallback)
+- Extension may try port 3006 (configuration mismatch)
+- Server actually prefers and uses port 3025
+
+### Process Management Best Practices
+
+**Clean Startup Procedure:**
+1. **Check existing processes**: `netstat -ano | findstr ":302"`
+2. **Kill conflicting processes**: `taskkill /PID [id] /F`
+3. **Start server fresh**: `npx @agentdeskai/browser-tools-server@latest`
+4. **Verify connection**: Look for "Chrome extension connected via WebSocket"
+
+**Maintenance Commands:**
+```powershell
+# Check all browser tools processes
+tasklist | findstr node.exe
+
+# Check specific port usage
+netstat -ano | findstr :3025
+
+# Kill specific process
+taskkill /PID [process_id] /F
+
+# Test port connectivity
+Test-NetConnection -ComputerName localhost -Port 3025
+```
+
+### Data Flow Verification
+
+**What to Monitor in Terminal:**
+- ✅ `Chrome extension connected via WebSocket`
+- ✅ `Received current URL update request`
+- ✅ `Processing console-log log entry`
+- ✅ `Adding console error: {...}`
+- ✅ `Received WebSocket message: { type: 'heartbeat' }`
+
+**What to Monitor in DevTools:**
+- ✅ Application errors being captured (proves system working)
+- ✅ Network requests being logged
+- ✅ Console messages flowing to server
+- ❌ Connection refused errors (indicates server/port issues)
+
+### Common Misconceptions
+
+**❌ WRONG**: "DevTools shows errors, so MCP isn't working"
+**✅ CORRECT**: "DevTools errors being captured proves MCP is working"
+
+**❌ WRONG**: "Server should use port 3026"
+**✅ CORRECT**: "Server prefers port 3025, uses 3026 as fallback"
+
+**❌ WRONG**: "Multiple server instances are fine"
+**✅ CORRECT**: "Multiple instances cause port conflicts and connection issues"
+
+### Emergency Recovery Procedure
+
+**When Everything Fails:**
+1. **Nuclear option**: Kill all node processes: `taskkill /F /IM node.exe`
+2. **Restart Chrome**: Close completely, reopen
+3. **Clear ports**: Wait 30 seconds for TIME_WAIT states to clear
+4. **Fresh start**: Run server command once
+5. **Verify immediately**: Check netstat and connection status
+
+**Warning**: Nuclear option kills ALL Node.js processes, not just browser tools.
 
 ## Terminal Environment Differences
 

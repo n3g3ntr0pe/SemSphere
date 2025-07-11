@@ -16,7 +16,7 @@ WSL Ubuntu is available via WSL subsystem requiring user interactive authenticat
 
 Cursor integrated terminal is always available with user workspace scope permissions. Its capabilities include file editing, terminal spawn, and extension access. Safety bounds include workspace only, no system modification, and no credential access.
 
-MCP Browser operates on port 3026 requiring server running, extension connected, and devtools active. Its capabilities include screenshot, console monitoring, network tracking, and accessibility audit. Failure modes include port conflict, extension disconnected, and permission denied. Safety bounds include localhost only, no credential harvesting, and no malicious injection.
+MCP Browser operates on port 3025 (fallback 3026) requiring server running, extension connected, and devtools active. Its capabilities include screenshot, console monitoring, network tracking, DOM extraction, and accessibility audit. Failure modes include port conflict, extension disconnected, permission denied, and process duplication. Safety bounds include localhost only, no credential harvesting, and no malicious injection.
 
 GitHub integration operates on authenticated user repos with capabilities including pr fetch, issue tracking, and commit history. Safety bounds include read only unless explicitly authorized and no credential modification. Rate limits follow github api standard.
 
@@ -166,6 +166,95 @@ For diagnostic reporting provide error context with detailed command and environ
 - Document repository URLs and access patterns for consistency
 - Implement regular authentication validation procedures
 - Use descriptive commit messages following project conventions
+
+---
+
+## MCP_BROWSER_TOOLS - Web Interaction & Monitoring Intelligence
+
+**Primary Integration Architecture**: Four-component system with Chrome Extension ↔ Middleware Server ↔ MCP Protocol Handler ↔ Cursor Integration. Each component exhibits specific failure modes requiring systematic troubleshooting and recovery procedures.
+
+**Chrome Extension** operates through browser WebSocket connection with capabilities including DOM capture, console log extraction, network request monitoring, and screenshot generation. Its limitations include permission dependency, browser restart requirements, and extension state volatility. Safety bounds include same-origin policy enforcement and content security policy compliance.
+
+**Middleware Server** operates on port 3025 (fallback 3026) with capabilities including data aggregation, WebSocket management, and protocol translation. Its limitations include port conflict susceptibility, process duplication issues, and network dependency. Safety bounds include localhost binding only and no external connection forwarding.
+
+### TROUBLESHOOTING_FRAMEWORK - Critical Issue Resolution
+
+**Port Conflict Resolution (Primary Failure Mode)**:
+1. **Detection**: `netstat -ano | findstr ":302"` for port 3025/3026 usage
+2. **Process Identification**: `tasklist | findstr node.exe` for server instances
+3. **Termination**: `taskkill /PID [process_id] /F` for clean shutdown
+4. **Verification**: `Test-NetConnection -ComputerName localhost -Port 3025` for connectivity
+
+**Server State Validation**:
+```powershell
+# Process Detection
+netstat -ano | findstr :3025
+tasklist /FI "PID eq [process_id]"
+
+# Connection Testing
+Test-NetConnection -ComputerName localhost -Port 3025
+
+# Server Restart
+npx @agentdeskai/browser-tools-server@latest
+```
+
+**Extension Connection Diagnostics**:
+1. **WebSocket Handshake**: Monitor server logs for "Chrome extension connected via WebSocket"
+2. **Data Flow Verification**: Confirm "Received current URL update request" messages
+3. **Heartbeat Monitoring**: Validate periodic `{ type: 'heartbeat' }` messages
+4. **Permission Validation**: Ensure extension permissions set to "On all sites"
+
+### OPERATIONAL_PROCEDURES - Data Capture & Analysis
+
+**Server Initialization Sequence**:
+1. **Environment Check**: Verify Chrome extension installed and permissions configured
+2. **Port Availability**: Confirm ports 3025/3026 available or terminate conflicting processes
+3. **Server Launch**: `npx @agentdeskai/browser-tools-server@latest` with background execution
+4. **Connection Verification**: Monitor logs for extension WebSocket connection confirmation
+
+**Data Collection Protocol**:
+1. **Console Monitoring**: Automatic capture of browser console logs, warnings, and errors
+2. **Network Tracking**: Real-time monitoring of HTTP requests and responses
+3. **DOM Extraction**: On-demand HTML content and element selection
+4. **Screenshot Generation**: Full-page or viewport-specific image capture
+
+**Error Interpretation Framework**:
+- **Application Errors in DevTools**: PROOF that system is working correctly (errors being captured)
+- **Connection Refused Errors**: Indicates server/extension communication failure
+- **Port Binding Failures**: Multiple server instances or permission conflicts
+- **WebSocket Disconnections**: Browser restart or extension state corruption
+
+### OPERATIONAL_INTELLIGENCE - Strategic Implementation
+
+**For Development Workflows**: Use MCP Browser for automated testing, console monitoring during development, and screenshot-based documentation. Integrate with build processes for error detection and performance monitoring.
+
+**For Debugging Operations**: Leverage real-time console capture for error isolation, network monitoring for API troubleshooting, and DOM inspection for UI verification. Combine with traditional debugging tools for comprehensive analysis.
+
+**For Documentation Tasks**: Utilize screenshot generation for visual documentation, console output capture for error reporting, and automated web interaction for user experience testing.
+
+**Reliability Assessment Matrix**:
+- **Extension Connectivity**: Robust when permissions properly configured, requires browser restart for reset
+- **Server Stability**: Highly reliable on dedicated port, susceptible to process conflicts
+- **Data Accuracy**: Excellent for console/network capture, dependent on browser developer tools APIs
+- **Performance Impact**: Minimal overhead during passive monitoring, moderate during active interaction
+
+**Emergency Recovery Procedures**:
+1. **Nuclear Reset**: `taskkill /F /IM node.exe` to terminate all Node.js processes
+2. **Browser Restart**: Complete Chrome closure and restart for extension reset
+3. **Port Clearance**: 30-second wait for TIME_WAIT state resolution
+4. **Clean Initialization**: Single server instance with immediate connection verification
+
+**Success Indicators vs Failure Symptoms**:
+- **✅ Working**: "Chrome extension connected via WebSocket", console logs flowing, heartbeat messages
+- **❌ Failing**: "ERROR: Port still in use", connection refused errors, no extension handshake
+- **🔍 Misconception**: DevTools application errors are success indicators, not failure symptoms
+
+**Best Practices**:
+- Maintain single server instance to prevent port conflicts
+- Monitor terminal output for connection status verification
+- Use application errors as validation of capture system functionality
+- Implement clean shutdown procedures before server restart
+- Document browser extension permission requirements for team environments
 
 ---
 
