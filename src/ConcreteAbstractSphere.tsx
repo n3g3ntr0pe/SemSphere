@@ -49,17 +49,17 @@ const ConcreteAbstractSphere = () => {
   const [sentencePaths, setSentencePaths] = useState<SentencePath[]>([]);
   const [zoomLevel, setZoomLevel] = useState(1);
   const targetZoomRef = useRef(1);
-  const [showLayers, setShowLayers] = useState(true);
+  const [showDimensionalFramework, setShowDimensionalFramework] = useState(true);
   const [showWaveVisualization, setShowWaveVisualization] = useState(false);
 
   // 6 Orthogonal dimensions as angular coordinates around sphere
   const orthogonalDimensions: OrthogonalDimension[] = [
     { name: 'Scale', angle: 0, color: 0xff6b6b, description: 'Microscopic ↔ Cosmic' },
-    { name: 'Temporal', angle: 60, color: 0x4ecdc4, description: 'Instant ↔ Eternal' },
-    { name: 'Agency', angle: 120, color: 0x45b7d1, description: 'Passive ↔ Active' },
+    { name: 'Temporal', angle: 90, color: 0x4ecdc4, description: 'Instant ↔ Eternal' },
+    { name: 'Agency', angle: 45, color: 0x45b7d1, description: 'Passive ↔ Active' },
     { name: 'Social', angle: 180, color: 0xf9ca24, description: 'Individual ↔ Collective' },
-    { name: 'Sensory', angle: 240, color: 0x6c5ce7, description: 'Physical ↔ Mental' },
-    { name: 'Causality', angle: 300, color: 0xa55eea, description: 'Effect ↔ Cause' }
+    { name: 'Sensory', angle: 270, color: 0x6c5ce7, description: 'Physical ↔ Mental' },
+    { name: 'Causality', angle: 135, color: 0xa55eea, description: 'Effect ↔ Cause' }
   ];
 
   // 5 Abstraction layers (radius from center)
@@ -167,39 +167,39 @@ const ConcreteAbstractSphere = () => {
 
   const vocabularyByDimension = {
     Scale: {
-      micro: ['atom', 'cell', 'molecule', 'bacteria', 'electron', 'proton'],
-      small: ['grain', 'pebble', 'insect', 'leaf', 'finger'],
-      medium: ['rock', 'tree', 'person', 'house', 'car'],
-      large: ['mountain', 'ocean', 'city', 'continent', 'planet'],
-      cosmic: ['star', 'galaxy', 'universe', 'cosmos', 'infinity']
+      micro: ['atom', 'cell', 'molecule', 'bacteria', 'electron', 'proton', 'particle', 'grain', 'tiny', 'microscopic'],
+      small: ['grain', 'pebble', 'insect', 'leaf', 'finger', 'coin', 'seed', 'drop', 'speck', 'crumb'],
+      medium: ['rock', 'tree', 'person', 'house', 'car', 'table', 'chair', 'human', 'animal', 'object'],
+      large: ['mountain', 'ocean', 'city', 'continent', 'planet', 'building', 'forest', 'lake', 'country', 'region'],
+      cosmic: ['star', 'galaxy', 'universe', 'cosmos', 'infinity', 'solar', 'galactic', 'cosmic', 'universal', 'space']
     },
     Temporal: {
-      instant: ['now', 'moment', 'flash', 'instant', 'second'],
-      short: ['minute', 'hour', 'day', 'quick', 'brief'],
-      medium: ['week', 'month', 'season', 'regular'],
-      long: ['year', 'decade', 'century', 'lasting', 'enduring'],
-      eternal: ['forever', 'eternal', 'infinite', 'timeless', 'always']
+      instant: ['now', 'moment', 'flash', 'instant', 'second', 'immediately', 'suddenly', 'quick', 'rapid', 'brief'],
+      short: ['minute', 'hour', 'day', 'quick', 'brief', 'short', 'temporary', 'momentary', 'fleeting', 'swift'],
+      medium: ['week', 'month', 'season', 'regular', 'periodic', 'routine', 'cycle', 'interval', 'span', 'duration'],
+      long: ['year', 'decade', 'century', 'lasting', 'enduring', 'prolonged', 'extended', 'sustained', 'permanent', 'long'],
+      eternal: ['forever', 'eternal', 'infinite', 'timeless', 'always', 'everlasting', 'immortal', 'endless', 'perpetual', 'constant']
     },
     Agency: {
-      passive: ['stone', 'water', 'sleep', 'rest', 'still', 'calm', 'receive'],
-      neutral: ['exist', 'be', 'have', 'contain', 'hold'],
-      active: ['run', 'jump', 'create', 'build', 'move', 'action', 'do', 'make']
+      passive: ['stone', 'water', 'sleep', 'rest', 'still', 'calm', 'receive', 'accept', 'suffer', 'experience', 'undergo', 'endure'],
+      neutral: ['exist', 'be', 'have', 'contain', 'hold', 'stay', 'remain', 'maintain', 'keep', 'preserve'],
+      active: ['run', 'jump', 'create', 'build', 'move', 'action', 'do', 'make', 'work', 'force', 'drive', 'push', 'control', 'direct', 'lead']
     },
     Social: {
-      individual: ['i', 'me', 'self', 'alone', 'personal', 'individual', 'private'],
-      small: ['friend', 'family', 'pair', 'couple', 'partner'],
-      group: ['team', 'group', 'community', 'neighborhood', 'organization'],
-      collective: ['society', 'humanity', 'civilization', 'culture', 'public', 'global']
+      individual: ['i', 'me', 'self', 'alone', 'personal', 'individual', 'private', 'solo', 'single', 'own', 'myself', 'separate'],
+      small: ['friend', 'family', 'pair', 'couple', 'partner', 'duo', 'sibling', 'parent', 'child', 'spouse', 'neighbor'],
+      group: ['team', 'group', 'community', 'neighborhood', 'organization', 'class', 'club', 'crew', 'band', 'committee'],
+      collective: ['society', 'humanity', 'civilization', 'culture', 'public', 'global', 'nation', 'world', 'people', 'population', 'masses']
     },
     Sensory: {
-      physical: ['touch', 'feel', 'hard', 'soft', 'hot', 'cold', 'taste', 'smell', 'see', 'hear'],
-      neutral: ['sense', 'experience', 'perceive'],
-      mental: ['think', 'believe', 'know', 'understand', 'idea', 'concept', 'mind', 'thought']
+      physical: ['touch', 'feel', 'hard', 'soft', 'hot', 'cold', 'taste', 'smell', 'see', 'hear', 'texture', 'temperature', 'pain', 'pressure'],
+      neutral: ['sense', 'experience', 'perceive', 'notice', 'observe', 'detect', 'aware', 'conscious', 'sensation'],
+      mental: ['think', 'believe', 'know', 'understand', 'idea', 'concept', 'mind', 'thought', 'imagine', 'remember', 'dream', 'wisdom', 'intelligence']
     },
     Causality: {
-      effect: ['result', 'outcome', 'consequence', 'end', 'finish', 'product'],
-      neutral: ['process', 'change', 'transform'],
-      cause: ['create', 'make', 'build', 'start', 'begin', 'source', 'origin', 'reason']
+      effect: ['result', 'outcome', 'consequence', 'end', 'finish', 'product', 'impact', 'aftermath', 'reaction', 'response'],
+      neutral: ['process', 'change', 'transform', 'development', 'evolution', 'transition', 'shift', 'modification'],
+      cause: ['create', 'make', 'build', 'start', 'begin', 'source', 'origin', 'reason', 'generate', 'produce', 'trigger', 'initiate', 'launch']
     }
   };
 
@@ -311,11 +311,29 @@ const ConcreteAbstractSphere = () => {
     const abstract = ['love', 'justice', 'beauty', 'truth', 'existence', 'reality', 'consciousness', 'infinity', 'freedom'];
     if (abstract.some(w => word.includes(w))) return 5;
     
-    // Default: analyze word characteristics
-    if (word.length <= 4) return 1; // Short words tend to be concrete
-    if (word.endsWith('ness') || word.endsWith('ity') || word.endsWith('ism')) return 5; // Abstract suffixes
+    // Temporal concepts (level 4) - time is a process/dimension
+    const temporal = ['now', 'then', 'when', 'moment', 'instant', 'second', 'minute', 'hour', 'day', 'week', 'month', 'year', 'decade', 'century', 'forever', 'eternal', 'always', 'never', 'before', 'after', 'during', 'while'];
+    if (temporal.some(w => word.includes(w))) return 4;
+    
+    // Pronouns and basic particles (level 2) - fundamental but not concrete objects
+    const pronouns = ['i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them'];
+    if (pronouns.some(w => word.includes(w))) return 2;
+    
+    // Verbs (level 4) - actions/processes
+    const verbs = ['run', 'walk', 'think', 'feel', 'see', 'hear', 'make', 'do', 'be', 'have', 'go', 'come', 'take', 'give'];
+    if (verbs.some(w => word.includes(w))) return 4;
+    
+    // Adjectives (level 3) - properties
+    const adjectives = ['good', 'bad', 'new', 'old', 'big', 'small', 'high', 'low', 'long', 'short', 'black', 'white'];
+    if (adjectives.some(w => word.includes(w))) return 3;
+    
+    // Default: analyze word characteristics more intelligently
+    if (word.endsWith('ness') || word.endsWith('ity') || word.endsWith('ism') || word.endsWith('tion')) return 5; // Abstract suffixes
     if (word.endsWith('ing') || word.endsWith('ed')) return 4; // Process words
-    return 3; // Default middle level
+    if (word.endsWith('ly')) return 3; // Adverbs - properties of actions
+    
+    // Final fallback: use linguistic principles instead of length
+    return 3; // Default middle level for unmapped words
   };
 
   const getWordScale = (word: string, scaleWords: Record<string, string[]>) => {
@@ -355,46 +373,62 @@ const ConcreteAbstractSphere = () => {
   const semanticsToPosition = (analysis: SemanticAnalysis): [number, number, number] => {
     const radius = abstractionLayers[analysis.abstractionLevel - 1].radius;
     
-    // Calculate weighted angular position based on dimensions
-    let totalAngle = 0;
-    let totalWeight = 0;
+    // Calculate position by combining dimensional values along their respective axes
+    let x = 0, y = 0, z = 0;
     
     orthogonalDimensions.forEach(dim => {
       const value = analysis.dimensions[dim.name] || 0;
-      const weight = Math.abs(value);
-      totalAngle += dim.angle * weight;
-      totalWeight += weight;
+      const angleRad = dim.angle * (Math.PI / 180);
       
-      // Debug logging for minute
-      if (analysis.word === 'minute') {
-        console.log(`Dimension: ${dim.name}, Value: ${value}, Weight: ${weight}, Angle: ${dim.angle}, Contribution: ${dim.angle * weight}`);
+      // Each dimension contributes to position based on its value and direction
+      // For negative values, use a slight offset angle instead of full 180° flip
+      const magnitude = Math.abs(value) * 0.5;
+      let adjustedAngle = angleRad;
+      
+      if (value < 0) {
+        // Offset negative values by 30° instead of 180° to avoid conflicts
+        adjustedAngle = angleRad + (Math.PI / 6); // +30°
+      } else if (value > 0) {
+        // Offset positive values by -30° 
+        adjustedAngle = angleRad - (Math.PI / 6); // -30°
+      }
+      // If value is 0, use the exact axis angle
+      
+      x += magnitude * Math.cos(adjustedAngle);
+      z += magnitude * Math.sin(adjustedAngle);
+      
+      // Debug logging for specific words
+      if (analysis.word === 'atom' || analysis.word === 'rock' || analysis.word === 'star' || analysis.word === 'now') {
+        console.log(`${analysis.word} - ${dim.name}: value=${value}, magnitude=${magnitude}, originalAngle=${dim.angle}°, adjustedAngle=${adjustedAngle * 180 / Math.PI}°`);
       }
     });
     
-    const azimuth = totalWeight > 0 ? (totalAngle / totalWeight) * (Math.PI / 180) : 0;
+    // Normalize the position to the correct radius
+    const currentRadius = Math.sqrt(x * x + z * z);
+    if (currentRadius > 0) {
+      const scale = radius / currentRadius;
+      x *= scale;
+      z *= scale;
+    } else {
+      // If no dimensional values, place at default position
+      x = radius;
+      z = 0;
+    }
     
-    // Add some elevation variation based on dimension values
-    const elevation = (Math.sin(azimuth * 3) * 0.3) * Math.PI; // Vary between -0.3π and 0.3π
+    // Add some elevation variation based on dimensional complexity
+    const dimensionSum = Object.values(analysis.dimensions).reduce((sum, val) => sum + Math.abs(val), 0);
+    const elevation = (Math.sin(dimensionSum * Math.PI) * 0.2) * Math.PI;
+    y = radius * Math.sin(elevation);
     
-    // Convert spherical to Cartesian
-    const x = radius * Math.cos(elevation) * Math.cos(azimuth);
-    const y = radius * Math.sin(elevation);
-    const z = radius * Math.cos(elevation) * Math.sin(azimuth);
+    // Adjust x and z for elevation
+    const elevationScale = Math.cos(elevation);
+    x *= elevationScale;
+    z *= elevationScale;
     
     // Debug logging for specific words
-    if (analysis.word === 'minute') {
-      console.log('=== DEBUG: MINUTE POSITIONING ===');
-      console.log('Word:', analysis.word);
-      console.log('Abstraction Level:', analysis.abstractionLevel);
+    if (analysis.word === 'atom' || analysis.word === 'rock' || analysis.word === 'star' || analysis.word === 'now') {
+      console.log(`=== DEBUG: ${analysis.word.toUpperCase()} POSITIONING ===`);
       console.log('Dimensions:', analysis.dimensions);
-      console.log('Radius:', radius);
-      console.log('Total Angle:', totalAngle);
-      console.log('Total Weight:', totalWeight);
-      console.log('Azimuth (degrees):', totalAngle / totalWeight);
-      console.log('Azimuth (radians):', azimuth);
-      console.log('Azimuth * 3 (radians):', azimuth * 3);
-      console.log('Sin(azimuth * 3):', Math.sin(azimuth * 3));
-      console.log('Elevation:', elevation);
       console.log('Final position [x, y, z]:', [x, y, z]);
       console.log('=== END DEBUG ===');
     }
@@ -431,28 +465,85 @@ const ConcreteAbstractSphere = () => {
   const plotData = () => {
     const allWords: Record<string, WordAnalysis> = {};
     const paths: SentencePath[] = [];
+    const usedPositions: Map<string, number> = new Map();
+    
+    // Track coverage statistics
+    let mappedWordsCount = 0;
+    let unmappedWordsCount = 0;
+    const unmappedWords: string[] = [];
     
     sentences.forEach((sentence, sentenceIndex) => {
+      console.log('=== PROCESSING SENTENCE ===');
+      console.log('Original sentence:', sentence);
+      
       // Get only semantic content words (exclude connection words)
       const semanticWords = getSemanticWords(sentence);
+      console.log('Semantic words extracted:', semanticWords);
+      
       const path: string[] = [];
       
       semanticWords.forEach(word => {
-        if (word && word.length > 1) {
+        console.log(`Processing word: "${word}", length: ${word.length}`);
+        
+        if (word && word.length > 0) {
           if (!allWords[word]) {
+            console.log(`Analyzing new word: ${word}`);
+            
+            // Check if word is in our explicit vocabulary
+            const allMapped = getAllMappedWords();
+            const isExplicitlyMapped = allMapped.includes(word);
+            
+            if (isExplicitlyMapped) {
+              mappedWordsCount++;
+            } else {
+              unmappedWordsCount++;
+              unmappedWords.push(word);
+              console.log(`⚠️  Word "${word}" not in semantic knowledge base - using defaults`);
+            }
+            
             const analysis = analyzeWordSemantics(word);
-            const position = semanticsToPosition(analysis);
+            let position = semanticsToPosition(analysis);
+            
+            // Check for position conflicts and add jitter if needed
+            const positionKey = `${position[0].toFixed(3)},${position[1].toFixed(3)},${position[2].toFixed(3)}`;
+            const conflictCount = usedPositions.get(positionKey) || 0;
+            
+            if (conflictCount > 0) {
+              console.log(`Position conflict detected for "${word}" at ${positionKey}, adding jitter`);
+              // Add small random offset based on conflict count
+              const jitterAmount = 0.3;
+              const angle = (conflictCount * 60) * (Math.PI / 180); // Spread conflicts in circle
+              const jitterX = Math.cos(angle) * jitterAmount;
+              const jitterZ = Math.sin(angle) * jitterAmount;
+              
+              position = [
+                position[0] + jitterX,
+                position[1] + (conflictCount * 0.1), // Small vertical offset
+                position[2] + jitterZ
+              ];
+              console.log(`Jittered position for "${word}":`, position);
+            }
+            
+            usedPositions.set(positionKey, conflictCount + 1);
+            console.log(`Word "${word}" positioned at:`, position);
+            
             allWords[word] = {
               ...analysis,
               position,
               count: 1
             };
           } else {
+            console.log(`Word "${word}" already exists, incrementing count`);
             allWords[word].count++;
           }
           path.push(word);
+        } else {
+          console.log(`Word "${word}" filtered out (length: ${word.length})`);
         }
       });
+      
+      console.log('Final path for sentence:', path);
+      console.log('=== END SENTENCE PROCESSING ===');
       
       // Only create path if we have semantic content words
       if (path.length > 0) {
@@ -463,6 +554,17 @@ const ConcreteAbstractSphere = () => {
         });
       }
     });
+    
+    // Log coverage statistics
+    const totalWords = mappedWordsCount + unmappedWordsCount;
+    const coveragePercent = totalWords > 0 ? (mappedWordsCount / totalWords * 100).toFixed(1) : 0;
+    
+    console.log(`📊 SEMANTIC COVERAGE STATISTICS:`);
+    console.log(`Mapped words: ${mappedWordsCount}/${totalWords} (${coveragePercent}%)`);
+    console.log(`Unmapped words: ${unmappedWordsCount} - ${unmappedWords.join(', ')}`);
+    
+    console.log('All words to be plotted:', Object.keys(allWords));
+    console.log('All paths:', paths);
     
     setWordData(allWords);
     setSentencePaths(paths);
@@ -609,65 +711,52 @@ const ConcreteAbstractSphere = () => {
     });
     objectsToRemove.forEach(obj => sceneRef.current!.remove(obj));
 
-    // Always show abstraction layer spheres
-    if (showLayers) {
-      abstractionLayers.forEach(layer => {
-        const geometry = new THREE.SphereGeometry(layer.radius, 32, 16);
-        const material = new THREE.MeshBasicMaterial({ 
-          color: layer.color, 
-          transparent: true, 
-          opacity: 0.1,
-          wireframe: true
-        });
-        const sphere = new THREE.Mesh(geometry, material);
-        sphere.userData.isPlotted = true;
-        sceneRef.current!.add(sphere);
+    // Show dimensional framework (spokes and labels only) when enabled
+    if (showDimensionalFramework) {
+      // Dimensional spokes
+      orthogonalDimensions.forEach(dim => {
+        const points = [
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(
+            8 * Math.cos(dim.angle * Math.PI / 180),
+            0,
+            8 * Math.sin(dim.angle * Math.PI / 180)
+          )
+        ];
+        
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({ color: dim.color, opacity: 0.6, transparent: true });
+        const line = new THREE.Line(geometry, material);
+        line.userData.isPlotted = true;
+        sceneRef.current!.add(line);
+        
+        // Dimension label
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 128;
+        canvas.height = 64;
+        
+        if (context) {
+          context.fillStyle = 'rgba(0, 0, 0, 0.8)';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.fillStyle = `#${dim.color.toString(16).padStart(6, '0')}`;
+          context.font = 'bold 12px Arial';
+          context.textAlign = 'center';
+          context.fillText(dim.name, canvas.width / 2, 30);
+          context.font = '10px Arial';
+          context.fillText(dim.description, canvas.width / 2, 50);
+        }
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        const labelMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        const label = new THREE.Sprite(labelMaterial);
+        label.scale.set(2, 1, 1);
+        label.position.copy(points[1]);
+        label.position.multiplyScalar(1.1);
+        label.userData.isPlotted = true;
+        sceneRef.current!.add(label);
       });
     }
-
-    // Show dimensional spokes
-    orthogonalDimensions.forEach(dim => {
-      const points = [
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(
-          8 * Math.cos(dim.angle * Math.PI / 180),
-          0,
-          8 * Math.sin(dim.angle * Math.PI / 180)
-        )
-      ];
-      
-      const geometry = new THREE.BufferGeometry().setFromPoints(points);
-      const material = new THREE.LineBasicMaterial({ color: dim.color, opacity: 0.4, transparent: true });
-      const line = new THREE.Line(geometry, material);
-      line.userData.isPlotted = true;
-      sceneRef.current!.add(line);
-      
-      // Dimension label
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      canvas.width = 128;
-      canvas.height = 64;
-      
-      if (context) {
-        context.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = `#${dim.color.toString(16).padStart(6, '0')}`;
-        context.font = 'bold 12px Arial';
-        context.textAlign = 'center';
-        context.fillText(dim.name, canvas.width / 2, 30);
-        context.font = '10px Arial';
-        context.fillText(dim.description, canvas.width / 2, 50);
-      }
-      
-      const texture = new THREE.CanvasTexture(canvas);
-      const labelMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
-      const label = new THREE.Sprite(labelMaterial);
-      label.scale.set(2, 1, 1);
-      label.position.copy(points[1]);
-      label.position.multiplyScalar(1.1);
-      label.userData.isPlotted = true;
-      sceneRef.current!.add(label);
-    });
 
     // Show wave pattern visualization
     if (showWaveVisualization) {
@@ -701,59 +790,27 @@ const ConcreteAbstractSphere = () => {
         waveLine.userData.isPlotted = true;
         sceneRef.current!.add(waveLine);
       });
-      
-      // Add markers at key elevation points (using the outermost wave for clarity)
-      const markerRadius = 7; // Use outermost abstraction layer for markers
-      const keyAngles = [0, 40, 80, 120, 140, 180, 220, 260, 300, 340];
-      keyAngles.forEach(angle => {
-        const azimuthRad = angle * (Math.PI / 180);
-        const elevation = (Math.sin(azimuthRad * 3) * 0.3) * Math.PI;
-        
-        const x = markerRadius * Math.cos(elevation) * Math.cos(azimuthRad);
-        const y = markerRadius * Math.sin(elevation);
-        const z = markerRadius * Math.cos(elevation) * Math.sin(azimuthRad);
-        
-        const sphereGeometry = new THREE.SphereGeometry(0.15, 8, 8);
-        const sphereMaterial = new THREE.MeshBasicMaterial({ 
-          color: elevation > 0 ? 0xff6666 : (elevation < 0 ? 0x6666ff : 0x66ff66)
-        });
-        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-        sphere.position.set(x, y, z);
-        sphere.userData.isPlotted = true;
-        sceneRef.current!.add(sphere);
-        
-        // Add elevation value labels
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.width = 80;
-        canvas.height = 32;
-        
-        if (context) {
-          context.fillStyle = 'rgba(0, 0, 0, 0.8)';
-          context.fillRect(0, 0, canvas.width, canvas.height);
-          context.fillStyle = 'yellow';
-          context.font = 'bold 8px Arial';
-          context.textAlign = 'center';
-          context.fillText(`${angle}°`, canvas.width / 2, 12);
-          context.fillText(`${(elevation * 180 / Math.PI).toFixed(1)}°`, canvas.width / 2, 26);
-        }
-        
-        const texture = new THREE.CanvasTexture(canvas);
-        const labelMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
-        const label = new THREE.Sprite(labelMaterial);
-        label.scale.set(1, 0.4, 1);
-        label.position.set(x + 0.4, y + 0.4, z + 0.4);
-        label.userData.isPlotted = true;
-        sceneRef.current!.add(label);
-      });
     }
 
     if (isPlotted) {
+      console.log('=== RENDERING WORDS ===');
+      console.log('wordData keys:', Object.keys(wordData));
+      console.log('wordData values:', Object.values(wordData));
+      
       // Plot words
-      Object.values(wordData).forEach(data => {
+      Object.values(wordData).forEach((data, index) => {
+        console.log(`Rendering word ${index + 1}:`, data.word);
+        console.log(`- Position:`, data.position);
+        console.log(`- Abstraction level:`, data.abstractionLevel);
+        console.log(`- Count:`, data.count);
+        
         const size = 0.1 + (data.count * 0.05);
+        console.log(`- Sphere size:`, size);
+        
         const geometry = new THREE.SphereGeometry(size, 16, 16);
         const layerColor = abstractionLayers[data.abstractionLevel - 1].color;
+        console.log(`- Color:`, layerColor);
+        
         const material = new THREE.MeshPhongMaterial({ 
           color: layerColor,
           transparent: true,
@@ -762,6 +819,9 @@ const ConcreteAbstractSphere = () => {
         const sphere = new THREE.Mesh(geometry, material);
         sphere.position.set(...data.position);
         sphere.userData.isPlotted = true;
+        sphere.userData.word = data.word; // Add word identifier
+        
+        console.log(`- Adding sphere to scene for "${data.word}" at position:`, sphere.position);
         sceneRef.current!.add(sphere);
 
         // Word label
@@ -785,8 +845,14 @@ const ConcreteAbstractSphere = () => {
         wordLabel.scale.set(1, 0.25, 1);
         wordLabel.position.set(data.position[0], data.position[1] + size + 0.3, data.position[2]);
         wordLabel.userData.isPlotted = true;
+        wordLabel.userData.word = data.word + '_label';
+        
+        console.log(`- Adding label to scene for "${data.word}" at position:`, wordLabel.position);
         sceneRef.current!.add(wordLabel);
       });
+      
+      console.log('=== FINISHED RENDERING WORDS ===');
+      console.log('Total objects in scene:', sceneRef.current!.children.length);
 
       // Plot sentence paths
       sentencePaths.forEach(pathData => {
@@ -812,7 +878,7 @@ const ConcreteAbstractSphere = () => {
       });
     }
 
-  }, [isPlotted, wordData, sentencePaths, showLayers, showWaveVisualization]);
+  }, [isPlotted, wordData, sentencePaths, showDimensionalFramework, showWaveVisualization]);
 
   return (
     <div className="w-full min-h-screen p-4 bg-gray-900 text-white">
@@ -1064,10 +1130,10 @@ const ConcreteAbstractSphere = () => {
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
-                    checked={showLayers}
-                    onChange={(e) => setShowLayers(e.target.checked)}
+                    checked={showDimensionalFramework}
+                    onChange={(e) => setShowDimensionalFramework(e.target.checked)}
                   />
-                  Show abstraction layers
+                  Show dimensional framework
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input
