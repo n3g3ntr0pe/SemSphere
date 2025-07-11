@@ -77,7 +77,12 @@ Before executing commands validate command against restrictions, verify target s
 
 ## OPERATIONAL_MODES - Task-Specific Configuration
 
-For development tasks use WSL Ubuntu primary, GitHub integration, and MCP browser for testing. For research tasks use web search primary, documentation access, and PowerShell for quick checks. For troubleshooting tasks use all terminals available, MCP browser diagnostics, and system information gathering. For file management use Cursor integrated primary, PowerShell for bulk operations, and WSL for text processing.
+For development tasks use PowerShell git primary (proven authentication), WSL Ubuntu for unix tooling, GitHub integration, and MCP browser for testing. For research tasks use web search primary, documentation access, and PowerShell for quick checks. For troubleshooting tasks use all terminals available, MCP browser diagnostics, and system information gathering. For file management use Cursor integrated primary, PowerShell for bulk operations, and WSL for text processing.
+
+**Git Operations Priority (Real-World Validated)**:
+1. **PowerShell**: Primary for all git operations (reliable credentials, accurate file states)
+2. **WSL Ubuntu**: Secondary for complex git operations after credential setup
+3. **Cursor UI**: Tertiary for routine monitoring when authentication stable
 
 When restricted suggest alternative approaches with trade offs. When failed indicate retry attempts and alternative strategies. When multiple options present ranked options with considerations. When uncertain request clarification with specific questions.
 
@@ -155,10 +160,38 @@ For diagnostic reporting provide error context with detailed command and environ
 
 **For Collaborative Projects**: Establish consistent workflow patterns that accommodate both integration modes. Document repository access patterns and authentication requirements for team environments.
 
+**Cross-Environment Git Operations - Critical Real-World Lessons**:
+
+**PowerShell Git Primary (RECOMMENDED)**:
+- ✅ **Proven reliable credential persistence** via Windows credential manager
+- ✅ **Real-time file state accuracy** without filesystem mount delays
+- ✅ **Established PAT authentication** working consistently
+- ✅ **Windows-native performance** for routine operations
+- ❌ **Limited unix tooling** for complex operations
+
+**WSL Git Secondary (Complex Operations Only)**:
+- ✅ **Full unix git command suite** for advanced operations
+- ✅ **Better merge/rebase tooling** with POSIX compatibility
+- ❌ **Filesystem mount delays** causing stale file state visibility
+- ❌ **Separate credential storage** requiring independent PAT setup
+- ❌ **Cross-environment state confusion** between Windows and WSL git views
+
+**Updated Operational Procedures**:
+1. **Routine Git Operations**: Use PowerShell (reliable credentials, accurate file states)
+2. **Complex Git Operations**: Use WSL after proper credential configuration
+3. **Cross-Environment Verification**: Always check `git status` in target environment before commits
+4. **Authentication Strategy**: Establish PAT in both environments independently
+
 **Integration Reliability Matrix**:
 - **UI Integration**: Suitable for routine operations when authenticated, fallback required for critical tasks
-- **Command Line**: Primary method for setup, troubleshooting, and complex operations
-- **Hybrid Approach**: Optimal strategy combining UI convenience with CLI reliability
+- **PowerShell Git**: Primary method for reliable operations with established authentication
+- **WSL Git**: Secondary method for complex operations after credential setup
+- **Hybrid Approach**: PowerShell for routine, WSL for advanced git workflows
+
+**Emergency Procedures**:
+- **Authentication Issues**: Fall back to PowerShell git (proven working)
+- **File State Confusion**: Verify operations in PowerShell environment
+- **Cross-Environment Conflicts**: Use single environment for complete operation workflows
 
 **Best Practices**:
 - Test integration authentication before critical operations
