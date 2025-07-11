@@ -38,19 +38,54 @@ interface SemanticAnalysis {
 
 const ConcreteAbstractSphere = () => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  // Multi-viewport system - array of viewport configs
+  const viewportsRef = useRef<Array<{
+    scene: THREE.Scene;
+    renderer: THREE.WebGLRenderer;
+    camera: THREE.PerspectiveCamera;
+    mountElement: HTMLDivElement;
+    combination: string[];
+    targetZoom: number;
+    cameraAngle: number;
+    cameraElevation: number;
+    cleanup: () => void; // Added for cleanup
+  }>>([]);
   
   const [sentences, setSentences] = useState<string[]>([]);
   const [currentSentence, setCurrentSentence] = useState('');
   const [isPlotted, setIsPlotted] = useState(false);
   const [wordData, setWordData] = useState<Record<string, WordAnalysis>>({});
   const [sentencePaths, setSentencePaths] = useState<SentencePath[]>([]);
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const targetZoomRef = useRef(1);
   const [showDimensionalFramework, setShowDimensionalFramework] = useState(true);
   const [showWaveVisualization, setShowWaveVisualization] = useState(false);
+  
+  // New state for multi-dimensional selection
+  const [selectedDimensions, setSelectedDimensions] = useState<string[]>(['Scale', 'Temporal', 'Agency']);
+  
+  // Get all available dimensions
+  const getAllDimensions = () => ['Scale', 'Temporal', 'Agency', 'Social', 'Sensory', 'Causality'];
+  
+  // Calculate all combinations of 3 from selected dimensions
+  const getCombinations = (arr: string[], r: number): string[][] => {
+    if (r > arr.length) return [];
+    if (r === 1) return arr.map(item => [item]);
+    
+    const result: string[][] = [];
+    for (let i = 0; i <= arr.length - r; i++) {
+      const head = arr[i];
+      const tailCombinations = getCombinations(arr.slice(i + 1), r - 1);
+      for (const tail of tailCombinations) {
+        result.push([head, ...tail]);
+      }
+    }
+    return result;
+  };
+  
+  // Get all 3D combinations from selected dimensions  
+  const get3DCombinations = () => {
+    if (selectedDimensions.length < 3) return [];
+    return getCombinations(selectedDimensions, 3);
+  };
 
   // 6 Orthogonal dimensions as angular coordinates around sphere
   const orthogonalDimensions: OrthogonalDimension[] = [
@@ -369,69 +404,22 @@ const ConcreteAbstractSphere = () => {
     return 0; // Default neutral
   };
 
-  // Convert semantic analysis to 3D spherical coordinates
-  const semanticsToPosition = (analysis: SemanticAnalysis): [number, number, number] => {
-    const radius = abstractionLayers[analysis.abstractionLevel - 1].radius;
+  // Convert semantic analysis to 3D coordinates using 3 specific dimensions
+  const semanticsTo3DPosition = (
+    analysis: SemanticAnalysis, 
+    dimensions: string[], 
+    viewRadius: number = 6
+  ): [number, number, number] => {
+    if (dimensions.length !== 3) return [0, 0, 0];
     
-    // Calculate position by combining dimensional values along their respective axes
-    let x = 0, y = 0, z = 0;
+    const xValue = analysis.dimensions[dimensions[0]] || 0;
+    const yValue = analysis.dimensions[dimensions[1]] || 0;
+    const zValue = analysis.dimensions[dimensions[2]] || 0;
     
-    orthogonalDimensions.forEach(dim => {
-      const value = analysis.dimensions[dim.name] || 0;
-      const angleRad = dim.angle * (Math.PI / 180);
-      
-      // Each dimension contributes to position based on its value and direction
-      // For negative values, use a slight offset angle instead of full 180° flip
-      const magnitude = Math.abs(value) * 0.5;
-      let adjustedAngle = angleRad;
-      
-      if (value < 0) {
-        // Offset negative values by 30° instead of 180° to avoid conflicts
-        adjustedAngle = angleRad + (Math.PI / 6); // +30°
-      } else if (value > 0) {
-        // Offset positive values by -30° 
-        adjustedAngle = angleRad - (Math.PI / 6); // -30°
-      }
-      // If value is 0, use the exact axis angle
-      
-      x += magnitude * Math.cos(adjustedAngle);
-      z += magnitude * Math.sin(adjustedAngle);
-      
-      // Debug logging for specific words
-      if (analysis.word === 'atom' || analysis.word === 'rock' || analysis.word === 'star' || analysis.word === 'now') {
-        console.log(`${analysis.word} - ${dim.name}: value=${value}, magnitude=${magnitude}, originalAngle=${dim.angle}°, adjustedAngle=${adjustedAngle * 180 / Math.PI}°`);
-      }
-    });
-    
-    // Normalize the position to the correct radius
-    const currentRadius = Math.sqrt(x * x + z * z);
-    if (currentRadius > 0) {
-      const scale = radius / currentRadius;
-      x *= scale;
-      z *= scale;
-    } else {
-      // If no dimensional values, place at default position
-      x = radius;
-      z = 0;
-    }
-    
-    // Add some elevation variation based on dimensional complexity
-    const dimensionSum = Object.values(analysis.dimensions).reduce((sum, val) => sum + Math.abs(val), 0);
-    const elevation = (Math.sin(dimensionSum * Math.PI) * 0.2) * Math.PI;
-    y = radius * Math.sin(elevation);
-    
-    // Adjust x and z for elevation
-    const elevationScale = Math.cos(elevation);
-    x *= elevationScale;
-    z *= elevationScale;
-    
-    // Debug logging for specific words
-    if (analysis.word === 'atom' || analysis.word === 'rock' || analysis.word === 'star' || analysis.word === 'now') {
-      console.log(`=== DEBUG: ${analysis.word.toUpperCase()} POSITIONING ===`);
-      console.log('Dimensions:', analysis.dimensions);
-      console.log('Final position [x, y, z]:', [x, y, z]);
-      console.log('=== END DEBUG ===');
-    }
+    // Direct mapping: (-1 to +1) → (-viewRadius to +viewRadius)
+    const x = xValue * viewRadius;
+    const y = yValue * viewRadius;  
+    const z = zValue * viewRadius;
     
     return [x, y, z];
   };
@@ -462,354 +450,192 @@ const ConcreteAbstractSphere = () => {
     }
   };
 
+  // Update word positioning for multi-viewport system
   const plotData = () => {
-    const allWords: Record<string, WordAnalysis> = {};
+    const allWordsPerCombination: Record<string, Record<string, WordAnalysis>> = {};
     const paths: SentencePath[] = [];
-    const usedPositions: Map<string, number> = new Map();
+    const combinations = get3DCombinations();
     
     // Track coverage statistics
     let mappedWordsCount = 0;
     let unmappedWordsCount = 0;
     const unmappedWords: string[] = [];
     
-    sentences.forEach((sentence, sentenceIndex) => {
-      console.log('=== PROCESSING SENTENCE ===');
-      console.log('Original sentence:', sentence);
+    // Generate word data for each combination
+    combinations.forEach((combination, combIndex) => {
+      allWordsPerCombination[`${combIndex}`] = {};
+      const usedPositions: Map<string, number> = new Map();
       
-      // Get only semantic content words (exclude connection words)
-      const semanticWords = getSemanticWords(sentence);
-      console.log('Semantic words extracted:', semanticWords);
-      
-      const path: string[] = [];
-      
-      semanticWords.forEach(word => {
-        console.log(`Processing word: "${word}", length: ${word.length}`);
+      sentences.forEach((sentence, sentenceIndex) => {
+        const semanticWords = getSemanticWords(sentence);
+        const path: string[] = [];
         
-        if (word && word.length > 0) {
-          if (!allWords[word]) {
-            console.log(`Analyzing new word: ${word}`);
-            
-            // Check if word is in our explicit vocabulary
-            const allMapped = getAllMappedWords();
-            const isExplicitlyMapped = allMapped.includes(word);
-            
-            if (isExplicitlyMapped) {
-              mappedWordsCount++;
-            } else {
-              unmappedWordsCount++;
-              unmappedWords.push(word);
-              console.log(`⚠️  Word "${word}" not in semantic knowledge base - using defaults`);
-            }
-            
-            const analysis = analyzeWordSemantics(word);
-            let position = semanticsToPosition(analysis);
-            
-            // Check for position conflicts and add jitter if needed
-            const positionKey = `${position[0].toFixed(3)},${position[1].toFixed(3)},${position[2].toFixed(3)}`;
-            const conflictCount = usedPositions.get(positionKey) || 0;
-            
-            if (conflictCount > 0) {
-              console.log(`Position conflict detected for "${word}" at ${positionKey}, adding jitter`);
-              // Add small random offset based on conflict count
-              const jitterAmount = 0.3;
-              const angle = (conflictCount * 60) * (Math.PI / 180); // Spread conflicts in circle
-              const jitterX = Math.cos(angle) * jitterAmount;
-              const jitterZ = Math.sin(angle) * jitterAmount;
+        semanticWords.forEach(word => {
+          if (word && word.length > 0) {
+            if (!allWordsPerCombination[`${combIndex}`][word]) {
+              // Only count coverage stats once (first combination)
+              if (combIndex === 0) {
+                const allMapped = getAllMappedWords();
+                const isExplicitlyMapped = allMapped.includes(word);
+                
+                if (isExplicitlyMapped) {
+                  mappedWordsCount++;
+                } else {
+                  unmappedWordsCount++;
+                  unmappedWords.push(word);
+                }
+              }
               
-              position = [
-                position[0] + jitterX,
-                position[1] + (conflictCount * 0.1), // Small vertical offset
-                position[2] + jitterZ
-              ];
-              console.log(`Jittered position for "${word}":`, position);
+              const analysis = analyzeWordSemantics(word);
+              let position: [number, number, number] = semanticsTo3DPosition(analysis, combination);
+              
+              // Handle position conflicts
+              const positionKey = `${position[0].toFixed(3)},${position[1].toFixed(3)},${position[2].toFixed(3)}`;
+              const conflictCount = usedPositions.get(positionKey) || 0;
+              
+              if (conflictCount > 0) {
+                const jitterAmount = 0.3;
+                const angle = (conflictCount * 60) * (Math.PI / 180);
+                const jitterX = Math.cos(angle) * jitterAmount;
+                const jitterZ = Math.sin(angle) * jitterAmount;
+                
+                position = [
+                  position[0] + jitterX,
+                  position[1] + (conflictCount * 0.1),
+                  position[2] + jitterZ
+                ];
+              }
+              
+              usedPositions.set(positionKey, conflictCount + 1);
+              
+              allWordsPerCombination[`${combIndex}`][word] = {
+                ...analysis,
+                position,
+                count: 1
+              };
+            } else {
+              allWordsPerCombination[`${combIndex}`][word].count++;
             }
-            
-            usedPositions.set(positionKey, conflictCount + 1);
-            console.log(`Word "${word}" positioned at:`, position);
-            
-            allWords[word] = {
-              ...analysis,
-              position,
-              count: 1
-            };
-          } else {
-            console.log(`Word "${word}" already exists, incrementing count`);
-            allWords[word].count++;
+            path.push(word);
           }
-          path.push(word);
-        } else {
-          console.log(`Word "${word}" filtered out (length: ${word.length})`);
+        });
+        
+        // Store path for each combination (only need to store once)
+        if (combIndex === 0 && path.length > 0) {
+          paths.push({
+            sentence,
+            path,
+            color: new THREE.Color().setHSL((sentenceIndex * 0.618) % 1, 0.9, 0.6).getHex()
+          });
         }
       });
-      
-      console.log('Final path for sentence:', path);
-      console.log('=== END SENTENCE PROCESSING ===');
-      
-      // Only create path if we have semantic content words
-      if (path.length > 0) {
-        paths.push({
-          sentence,
-          path,
-          color: new THREE.Color().setHSL((sentenceIndex * 0.618) % 1, 0.9, 0.6).getHex()
-        });
-      }
     });
     
     // Log coverage statistics
     const totalWords = mappedWordsCount + unmappedWordsCount;
     const coveragePercent = totalWords > 0 ? (mappedWordsCount / totalWords * 100).toFixed(1) : 0;
+    console.log(`📊 SEMANTIC COVERAGE: ${mappedWordsCount}/${totalWords} (${coveragePercent}%)`);
+    console.log(`Unmapped: ${unmappedWords.join(', ')}`);
     
-    console.log(`📊 SEMANTIC COVERAGE STATISTICS:`);
-    console.log(`Mapped words: ${mappedWordsCount}/${totalWords} (${coveragePercent}%)`);
-    console.log(`Unmapped words: ${unmappedWordsCount} - ${unmappedWords.join(', ')}`);
-    
-    console.log('All words to be plotted:', Object.keys(allWords));
-    console.log('All paths:', paths);
-    
-    setWordData(allWords);
+    // Store data and trigger rendering
+    setWordData(allWordsPerCombination['0'] || {});
     setSentencePaths(paths);
     setIsPlotted(true);
-  };
-
-  const clearData = () => {
-    setSentences([]);
-    setWordData({});
-    setSentencePaths([]);
-    setIsPlotted(false);
-  };
-
-  // Camera control state
-  const cameraAngleRef = useRef(0);
-  const cameraElevationRef = useRef(0);
-
-  useEffect(() => {
-    if (!mountRef.current) return;
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0a0a);
-    sceneRef.current = scene;
-
-    const rect = mountRef.current.getBoundingClientRect();
-    const camera = new THREE.PerspectiveCamera(75, rect.width / rect.height, 0.1, 1000);
-    camera.position.set(15, 10, 15);
-    cameraRef.current = camera;
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(rect.width, rect.height);
-    rendererRef.current = renderer;
-    mountRef.current.appendChild(renderer.domElement);
-
-    // Handle window resize
-    const handleResize = () => {
-      if (!mountRef.current || !cameraRef.current || !rendererRef.current) return;
-      const rect = mountRef.current.getBoundingClientRect();
-      cameraRef.current.aspect = rect.width / rect.height;
-      cameraRef.current.updateProjectionMatrix();
-      rendererRef.current.setSize(rect.width, rect.height);
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(20, 20, 10);
-    scene.add(directionalLight);
-
-    // Mouse controls for camera
-    let mouseDown = false;
-    let mouseX = 0;
-    let mouseY = 0;
-
-    const onMouseDown = (event: MouseEvent) => {
-      mouseDown = true;
-      mouseX = event.clientX;
-      mouseY = event.clientY;
-    };
-
-    const onMouseUp = () => {
-      mouseDown = false;
-    };
-
-    const onMouseMove = (event: MouseEvent) => {
-      if (!mouseDown) return;
-      
-      const deltaX = event.clientX - mouseX;
-      const deltaY = event.clientY - mouseY;
-      
-      cameraAngleRef.current = cameraAngleRef.current + deltaX * 0.003;
-      cameraElevationRef.current = Math.max(-Math.PI/3, Math.min(Math.PI/3, cameraElevationRef.current - deltaY * 0.003));
-      
-      mouseX = event.clientX;
-      mouseY = event.clientY;
-    };
-
-    const onWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1; // Smoother zoom steps
-      const newTargetZoom = Math.max(0.1, Math.min(20, targetZoomRef.current * zoomFactor));
-      targetZoomRef.current = newTargetZoom;
-    };
-
-    renderer.domElement.addEventListener('mousedown', onMouseDown);
-    renderer.domElement.addEventListener('mouseup', onMouseUp);
-    renderer.domElement.addEventListener('mousemove', onMouseMove);
-    renderer.domElement.addEventListener('wheel', onWheel);
-
-    const animate = () => {
-      requestAnimationFrame(animate);
-      
-      // Smooth zoom interpolation
-      const zoomSpeed = 0.1; // Adjust for different smoothness (0.1 = smooth, 0.5 = faster)
-      const currentZoom = zoomLevel;
-      const targetZoom = targetZoomRef.current;
-      const newZoom = currentZoom + (targetZoom - currentZoom) * zoomSpeed;
-      
-      // Only update if there's a meaningful difference
-      if (Math.abs(newZoom - currentZoom) > 0.001) {
-        setZoomLevel(newZoom);
-      }
-      
-      // Update camera position smoothly
-      if (cameraRef.current) {
-        const distance = 20 / newZoom;
-        const angle = cameraAngleRef.current;
-        const elevation = cameraElevationRef.current;
-        cameraRef.current.position.x = distance * Math.cos(elevation) * Math.cos(angle);
-        cameraRef.current.position.y = distance * Math.sin(elevation);
-        cameraRef.current.position.z = distance * Math.cos(elevation) * Math.sin(angle);
-        cameraRef.current.lookAt(0, 0, 0);
-      }
-      
-      renderer.render(scene, camera);
-    };
-    animate();
-
-    return () => {
-      if (mountRef.current && renderer.domElement) {
-        mountRef.current.removeChild(renderer.domElement);
-      }
-      renderer.domElement.removeEventListener('mousedown', onMouseDown);
-      renderer.domElement.removeEventListener('mouseup', onMouseUp);
-      renderer.domElement.removeEventListener('mousemove', onMouseMove);
-      renderer.domElement.removeEventListener('wheel', onWheel);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!sceneRef.current) return;
     
-    // Clear existing plotted objects
-    const objectsToRemove: THREE.Object3D[] = [];
-    sceneRef.current.traverse((child) => {
-      if (child.userData.isPlotted) {
-        objectsToRemove.push(child);
-      }
-    });
-    objectsToRemove.forEach(obj => sceneRef.current!.remove(obj));
+    // Render in all viewports
+    renderInAllViewports(allWordsPerCombination, paths);
+  };
 
-    // Show dimensional framework (spokes and labels only) when enabled
-    if (showDimensionalFramework) {
-      // Dimensional spokes
-      orthogonalDimensions.forEach(dim => {
-        const points = [
-          new THREE.Vector3(0, 0, 0),
-          new THREE.Vector3(
-            8 * Math.cos(dim.angle * Math.PI / 180),
-            0,
-            8 * Math.sin(dim.angle * Math.PI / 180)
-          )
-        ];
-        
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        const material = new THREE.LineBasicMaterial({ color: dim.color, opacity: 0.6, transparent: true });
-        const line = new THREE.Line(geometry, material);
-        line.userData.isPlotted = true;
-        sceneRef.current!.add(line);
-        
-        // Dimension label
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.width = 128;
-        canvas.height = 64;
-        
-        if (context) {
-          context.fillStyle = 'rgba(0, 0, 0, 0.8)';
-          context.fillRect(0, 0, canvas.width, canvas.height);
-          context.fillStyle = `#${dim.color.toString(16).padStart(6, '0')}`;
-          context.font = 'bold 12px Arial';
-          context.textAlign = 'center';
-          context.fillText(dim.name, canvas.width / 2, 30);
-          context.font = '10px Arial';
-          context.fillText(dim.description, canvas.width / 2, 50);
-        }
-        
-        const texture = new THREE.CanvasTexture(canvas);
-        const labelMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
-        const label = new THREE.Sprite(labelMaterial);
-        label.scale.set(2, 1, 1);
-        label.position.copy(points[1]);
-        label.position.multiplyScalar(1.1);
-        label.userData.isPlotted = true;
-        sceneRef.current!.add(label);
-      });
-    }
-
-    // Show wave pattern visualization
-    if (showWaveVisualization) {
-      // Show wave at multiple radii to demonstrate amplitude scaling
-      const waveRadii = [1, 2.5, 4, 5.5, 7]; // Match abstraction layer radii
-      const waveColors = [0x00ff00, 0x3498db, 0x9b59b6, 0xe67e22, 0xe74c3c]; // Match layer colors
+  // Render words and paths in all viewports
+  const renderInAllViewports = (allWordsPerCombination: Record<string, Record<string, WordAnalysis>>, paths: SentencePath[]) => {
+    viewportsRef.current.forEach((viewport, viewportIndex) => {
+      const scene = viewport.scene;
+      const combination = viewport.combination;
       
-      waveRadii.forEach((waveRadius, layerIndex) => {
-        const wavePoints: THREE.Vector3[] = [];
+      // Clear existing plotted objects
+      const objectsToRemove: THREE.Object3D[] = [];
+      scene.traverse((child: THREE.Object3D) => {
+        if (child.userData.isPlotted) {
+          objectsToRemove.push(child);
+        }
+      });
+      objectsToRemove.forEach(obj => scene.remove(obj));
+
+      const wordData = allWordsPerCombination[`${viewportIndex}`] || {};
+
+      // Show dimensional framework if enabled
+      if (showDimensionalFramework) {
+        // Create proper X, Y, Z axes for this combination
+        const axisLength = 8;
+        const axes = [];
         
-        for (let angle = 0; angle <= 360; angle += 10) {
-          const azimuthRad = angle * (Math.PI / 180);
-          const elevation = (Math.sin(azimuthRad * 3) * 0.3) * Math.PI;
-          
-          const x = waveRadius * Math.cos(elevation) * Math.cos(azimuthRad);
-          const y = waveRadius * Math.sin(elevation);
-          const z = waveRadius * Math.cos(elevation) * Math.sin(azimuthRad);
-          
-          wavePoints.push(new THREE.Vector3(x, y, z));
+        if (combination.length >= 1) {
+          axes.push({
+            name: combination[0],
+            color: orthogonalDimensions.find(d => d.name === combination[0])?.color || 0xff0000,
+            points: [new THREE.Vector3(-axisLength, 0, 0), new THREE.Vector3(axisLength, 0, 0)],
+            labelPos: new THREE.Vector3(axisLength + 0.5, 0, 0)
+          });
         }
         
-        // Create the wave line for this radius
-        const waveGeometry = new THREE.BufferGeometry().setFromPoints(wavePoints);
-        const waveMaterial = new THREE.LineBasicMaterial({ 
-          color: waveColors[layerIndex], 
-          linewidth: 2,
-          transparent: true,
-          opacity: 0.6
+        if (combination.length >= 2) {
+          axes.push({
+            name: combination[1],
+            color: orthogonalDimensions.find(d => d.name === combination[1])?.color || 0x00ff00,
+            points: [new THREE.Vector3(0, -axisLength, 0), new THREE.Vector3(0, axisLength, 0)],
+            labelPos: new THREE.Vector3(0, axisLength + 0.5, 0)
+          });
+        }
+        
+        if (combination.length >= 3) {
+          axes.push({
+            name: combination[2],
+            color: orthogonalDimensions.find(d => d.name === combination[2])?.color || 0x0000ff,
+            points: [new THREE.Vector3(0, 0, -axisLength), new THREE.Vector3(0, 0, axisLength)],
+            labelPos: new THREE.Vector3(0, 0, axisLength + 0.5)
+          });
+        }
+        
+        axes.forEach(axis => {
+          const geometry = new THREE.BufferGeometry().setFromPoints(axis.points);
+          const material = new THREE.LineBasicMaterial({ color: axis.color, opacity: 0.6, transparent: true });
+          const line = new THREE.Line(geometry, material);
+          line.userData.isPlotted = true;
+          scene.add(line);
+          
+          // Axis label
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.width = 128;
+          canvas.height = 64;
+          
+          if (context) {
+            context.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.fillStyle = `#${axis.color.toString(16).padStart(6, '0')}`;
+            context.font = 'bold 12px Arial';
+            context.textAlign = 'center';
+            context.fillText(axis.name, canvas.width / 2, 30);
+            context.font = '10px Arial';
+            const dimDescription = orthogonalDimensions.find(d => d.name === axis.name)?.description || '';
+            context.fillText(dimDescription, canvas.width / 2, 50);
+          }
+          
+          const texture = new THREE.CanvasTexture(canvas);
+          const labelMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+          const label = new THREE.Sprite(labelMaterial);
+          label.scale.set(2, 1, 1);
+          label.position.copy(axis.labelPos);
+          label.userData.isPlotted = true;
+          scene.add(label);
         });
-        const waveLine = new THREE.Line(waveGeometry, waveMaterial);
-        waveLine.userData.isPlotted = true;
-        sceneRef.current!.add(waveLine);
-      });
-    }
+      }
 
-    if (isPlotted) {
-      console.log('=== RENDERING WORDS ===');
-      console.log('wordData keys:', Object.keys(wordData));
-      console.log('wordData values:', Object.values(wordData));
-      
       // Plot words
-      Object.values(wordData).forEach((data, index) => {
-        console.log(`Rendering word ${index + 1}:`, data.word);
-        console.log(`- Position:`, data.position);
-        console.log(`- Abstraction level:`, data.abstractionLevel);
-        console.log(`- Count:`, data.count);
-        
+      Object.values(wordData).forEach((data) => {
         const size = 0.1 + (data.count * 0.05);
-        console.log(`- Sphere size:`, size);
-        
         const geometry = new THREE.SphereGeometry(size, 16, 16);
         const layerColor = abstractionLayers[data.abstractionLevel - 1].color;
-        console.log(`- Color:`, layerColor);
         
         const material = new THREE.MeshPhongMaterial({ 
           color: layerColor,
@@ -819,10 +645,8 @@ const ConcreteAbstractSphere = () => {
         const sphere = new THREE.Mesh(geometry, material);
         sphere.position.set(...data.position);
         sphere.userData.isPlotted = true;
-        sphere.userData.word = data.word; // Add word identifier
-        
-        console.log(`- Adding sphere to scene for "${data.word}" at position:`, sphere.position);
-        sceneRef.current!.add(sphere);
+        sphere.userData.word = data.word;
+        scene.add(sphere);
 
         // Word label
         const canvas = document.createElement('canvas');
@@ -846,16 +670,11 @@ const ConcreteAbstractSphere = () => {
         wordLabel.position.set(data.position[0], data.position[1] + size + 0.3, data.position[2]);
         wordLabel.userData.isPlotted = true;
         wordLabel.userData.word = data.word + '_label';
-        
-        console.log(`- Adding label to scene for "${data.word}" at position:`, wordLabel.position);
-        sceneRef.current!.add(wordLabel);
+        scene.add(wordLabel);
       });
-      
-      console.log('=== FINISHED RENDERING WORDS ===');
-      console.log('Total objects in scene:', sceneRef.current!.children.length);
 
       // Plot sentence paths
-      sentencePaths.forEach(pathData => {
+      paths.forEach(pathData => {
         const points: THREE.Vector3[] = [];
         pathData.path.forEach(word => {
           if (wordData[word]) {
@@ -873,12 +692,230 @@ const ConcreteAbstractSphere = () => {
           });
           const line = new THREE.Line(geometry, material);
           line.userData.isPlotted = true;
-          sceneRef.current!.add(line);
+          scene.add(line);
         }
       });
-    }
+    });
+  };
 
-  }, [isPlotted, wordData, sentencePaths, showDimensionalFramework, showWaveVisualization]);
+  const clearData = () => {
+    setSentences([]);
+    setWordData({});
+    setSentencePaths([]);
+    setIsPlotted(false);
+  };
+
+  // Initialize multi-viewport system
+  const initializeViewports = () => {
+    if (!mountRef.current) return;
+    
+    // Clean up existing viewports
+    viewportsRef.current.forEach(viewport => {
+      if (viewport.mountElement.parentNode) {
+        viewport.mountElement.parentNode.removeChild(viewport.mountElement);
+      }
+      viewport.renderer.dispose();
+      viewport.cleanup(); // Call cleanup for each viewport
+    });
+    viewportsRef.current = [];
+    
+    const combinations = get3DCombinations();
+    if (combinations.length === 0) return;
+    
+    // Clear mount container
+    mountRef.current.innerHTML = '';
+    
+    // Calculate grid layout
+    const numViewports = combinations.length;
+    const cols = Math.ceil(Math.sqrt(numViewports));
+    const rows = Math.ceil(numViewports / cols);
+    
+    // Create grid container
+    const gridContainer = document.createElement('div');
+    gridContainer.style.cssText = `
+      display: grid;
+      grid-template-columns: repeat(${cols}, 1fr);
+      grid-template-rows: repeat(${rows}, 1fr);
+      gap: 8px;
+      width: 100%;
+      height: 100%;
+      padding: 8px;
+    `;
+    mountRef.current.appendChild(gridContainer);
+    
+    // Create viewport for each combination
+    combinations.forEach((combination) => {
+      // Create mount element
+      const mountElement = document.createElement('div');
+      mountElement.style.cssText = `
+        width: 100%;
+        height: 100%;
+        border: 1px solid #374151;
+        border-radius: 4px;
+        position: relative;
+        background: #111827;
+      `;
+      
+      // Add combination label
+      const label = document.createElement('div');
+      label.style.cssText = `
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 2px;
+        font-size: 10px;
+        z-index: 10;
+      `;
+      label.textContent = `${combination[0]} × ${combination[1]} × ${combination[2]}`;
+      mountElement.appendChild(label);
+      
+      gridContainer.appendChild(mountElement);
+      
+      // Create Three.js scene
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0a0a);
+      
+      // Create camera
+      const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+      camera.position.set(15, 10, 15);
+      
+      // Create renderer
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      const rect = mountElement.getBoundingClientRect();
+      renderer.setSize(rect.width || 200, rect.height || 200);
+      mountElement.appendChild(renderer.domElement);
+      
+      // Add lighting
+      const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+      scene.add(ambientLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(20, 20, 10);
+      scene.add(directionalLight);
+      
+      // Create viewport object with mouse controls
+      let mouseDown = false;
+      let mouseX = 0;
+      let mouseY = 0;
+      
+      const viewport = {
+        scene,
+        renderer,
+        camera,
+        mountElement,
+        combination,
+        targetZoom: 1,
+        cameraAngle: 0,
+        cameraElevation: 0,
+        cleanup: () => {
+          renderer.domElement.removeEventListener('mousedown', onMouseDown);
+          renderer.domElement.removeEventListener('mouseup', onMouseUp);
+          renderer.domElement.removeEventListener('mousemove', onMouseMove);
+          renderer.domElement.removeEventListener('wheel', onWheel);
+        }
+      };
+      
+      const onMouseDown = (event: MouseEvent) => {
+        mouseDown = true;
+        mouseX = event.clientX;
+        mouseY = event.clientY;
+        event.preventDefault();
+      };
+      
+      const onMouseUp = () => {
+        mouseDown = false;
+      };
+      
+      const onMouseMove = (event: MouseEvent) => {
+        if (!mouseDown) return;
+        
+        const deltaX = event.clientX - mouseX;
+        const deltaY = event.clientY - mouseY;
+        
+        // Update this viewport's camera angles
+        viewport.cameraAngle = viewport.cameraAngle + deltaX * 0.003;
+        viewport.cameraElevation = Math.max(-Math.PI/3, Math.min(Math.PI/3, viewport.cameraElevation - deltaY * 0.003));
+        
+        mouseX = event.clientX;
+        mouseY = event.clientY;
+        event.preventDefault();
+      };
+      
+      const onWheel = (event: WheelEvent) => {
+        event.preventDefault();
+        const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+        viewport.targetZoom = Math.max(0.1, Math.min(20, viewport.targetZoom * zoomFactor));
+      };
+      
+      // Add event listeners to this viewport's renderer
+      renderer.domElement.addEventListener('mousedown', onMouseDown);
+      renderer.domElement.addEventListener('mouseup', onMouseUp);
+      renderer.domElement.addEventListener('mousemove', onMouseMove);
+      renderer.domElement.addEventListener('wheel', onWheel);
+      
+      // Store viewport configuration
+      viewportsRef.current.push(viewport);
+    });
+    
+    // Start animation loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+      
+      viewportsRef.current.forEach(viewport => {
+        // Update camera position
+        const distance = 20 / viewport.targetZoom;
+        viewport.camera.position.x = distance * Math.cos(viewport.cameraElevation) * Math.cos(viewport.cameraAngle);
+        viewport.camera.position.y = distance * Math.sin(viewport.cameraElevation);
+        viewport.camera.position.z = distance * Math.cos(viewport.cameraElevation) * Math.sin(viewport.cameraAngle);
+        viewport.camera.lookAt(0, 0, 0);
+        
+        // Render scene
+        viewport.renderer.render(viewport.scene, viewport.camera);
+      });
+    };
+    animate();
+  };
+
+  // Initialize viewports when combinations change
+  useEffect(() => {
+    initializeViewports();
+    
+    // Handle window resize
+    const handleResize = () => {
+      viewportsRef.current.forEach(viewport => {
+        const rect = viewport.mountElement.getBoundingClientRect();
+        viewport.camera.aspect = rect.width / rect.height;
+        viewport.camera.updateProjectionMatrix();
+        viewport.renderer.setSize(rect.width, rect.height);
+      });
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      // Cleanup viewports
+      viewportsRef.current.forEach(viewport => {
+        viewport.renderer.dispose();
+        viewport.cleanup(); // Call cleanup for each viewport
+      });
+    };
+  }, [selectedDimensions]);
+
+  // Clean up old single-scene useEffect - now handled by renderInAllViewports
+  useEffect(() => {
+    // Rendering is now handled directly in plotData() -> renderInAllViewports()
+    // This useEffect is no longer needed
+  }, [isPlotted, wordData, sentencePaths, showDimensionalFramework, showWaveVisualization, selectedDimensions]);
+
+  // Re-plot when dimensional selection changes
+  useEffect(() => {
+    if (isPlotted && sentences.length > 0) {
+      plotData(); // Re-run plotting with new dimensional selection
+    }
+  }, [selectedDimensions]);
 
   return (
     <div className="w-full min-h-screen p-4 bg-gray-900 text-white">
@@ -894,7 +931,7 @@ const ConcreteAbstractSphere = () => {
         <div className="flex-1 flex flex-col">
           <div ref={mountRef} className="flex-1 border border-gray-700 rounded-lg overflow-hidden" />
           <div className="mt-2 text-sm text-gray-400 text-center">
-            Mouse: Rotate | Wheel: Zoom | Current zoom: {zoomLevel.toFixed(1)}x
+            Mouse: Rotate | Wheel: Zoom
           </div>
         </div>
 
@@ -1127,6 +1164,47 @@ const ConcreteAbstractSphere = () => {
               </div>
 
               <div className="space-y-2 mt-3">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Select Dimensions ({selectedDimensions.length} selected → {get3DCombinations().length} plots):
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {getAllDimensions().map(dimension => (
+                      <label key={dimension} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={selectedDimensions.includes(dimension)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedDimensions([...selectedDimensions, dimension]);
+                            } else {
+                              setSelectedDimensions(selectedDimensions.filter(d => d !== dimension));
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        {dimension}
+                      </label>
+                    ))}
+                  </div>
+                  {selectedDimensions.length < 3 && (
+                    <div className="text-yellow-400 text-xs mb-3">
+                      Select at least 3 dimensions to create 3D plots
+                    </div>
+                  )}
+                  {selectedDimensions.length >= 3 && (
+                    <div className="text-green-400 text-xs mb-3">
+                      Will generate C({selectedDimensions.length},3) = {get3DCombinations().length} different 3D views
+                    </div>
+                  )}
+                  
+                  {/* Multi-Viewport Information */}
+                  {get3DCombinations().length > 1 && (
+                    <div className="text-blue-400 text-xs mb-3">
+                      Showing all {get3DCombinations().length} combinations simultaneously in grid view
+                    </div>
+                  )}
+                </div>
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"

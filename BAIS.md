@@ -233,17 +233,27 @@ For diagnostic reporting provide error context with detailed command and environ
 
 **Primary Integration Architecture**: Four-component system with Chrome Extension ↔ Middleware Server ↔ MCP Protocol Handler ↔ Cursor Integration. Each component exhibits specific failure modes requiring systematic troubleshooting and recovery procedures.
 
+**⚠️ CRITICAL ARCHITECTURE DISCOVERY** (2025-07-11): **Cursor manages the MCP server automatically** through `~/.cursor/mcp.json` configuration. Manual server startup creates port conflicts and prevents proper MCP integration.
+
+**CORRECT Setup Process**:
+1. **Chrome Extension**: Install with "On all sites" permission
+2. **Cursor MCP Configuration**: Automatically reads `~/.cursor/mcp.json` and manages server
+3. **NO Manual Server**: Never run `npx @agentdeskai/browser-tools-server@latest` manually
+4. **Cursor Restart**: Required to reload MCP configuration after changes
+
 **Chrome Extension** operates through browser WebSocket connection with capabilities including DOM capture, console log extraction, network request monitoring, and screenshot generation. Its limitations include permission dependency, browser restart requirements, and extension state volatility. Safety bounds include same-origin policy enforcement and content security policy compliance.
 
-**Middleware Server** operates on port 3025 (fallback 3026) with capabilities including data aggregation, WebSocket management, and protocol translation. Its limitations include port conflict susceptibility, process duplication issues, and network dependency. Safety bounds include localhost binding only and no external connection forwarding.
+**Middleware Server** operates on port 3025 (fallback 3026) with capabilities including data aggregation, WebSocket management, and protocol translation. **CURSOR MANAGED**: Server automatically started by Cursor's MCP Protocol Handler, not user-initiated. Its limitations include port conflict susceptibility, process duplication issues, and network dependency. Safety bounds include localhost binding only and no external connection forwarding.
 
 ### TROUBLESHOOTING_FRAMEWORK - Critical Issue Resolution
 
 **Port Conflict Resolution (Primary Failure Mode)**:
 1. **Detection**: `netstat -ano | findstr ":302"` for port 3025/3026 usage
 2. **Process Identification**: `tasklist | findstr node.exe` for server instances
-3. **Termination**: `taskkill /PID [process_id] /F` for clean shutdown
-4. **Verification**: `Test-NetConnection -ComputerName localhost -Port 3025` for connectivity
+3. **Root Cause**: Manual server startup conflicts with Cursor's automatic MCP server management
+4. **Termination**: `taskkill /PID [process_id] /F` for clean shutdown of manual servers
+5. **Restart Cursor**: Required to allow proper MCP server initialization
+6. **Verification**: Check Cursor shows "browser tools enabled" instead of "0 browser tools enabled"
 
 **Server State Validation**:
 ```powershell
@@ -266,11 +276,12 @@ npx @agentdeskai/browser-tools-server@latest
 
 ### OPERATIONAL_PROCEDURES - Data Capture & Analysis
 
-**Server Initialization Sequence**:
+**Server Initialization Sequence** (CURSOR MANAGED):
 1. **Environment Check**: Verify Chrome extension installed and permissions configured
-2. **Port Availability**: Confirm ports 3025/3026 available or terminate conflicting processes
-3. **Server Launch**: `npx @agentdeskai/browser-tools-server@latest` with background execution
-4. **Connection Verification**: Monitor logs for extension WebSocket connection confirmation
+2. **MCP Configuration**: Ensure `~/.cursor/mcp.json` contains browser-tools configuration
+3. **Port Availability**: Terminate any manual server processes conflicting with Cursor's MCP server
+4. **Cursor Restart**: Required to reload MCP configuration and start server automatically
+5. **Connection Verification**: Check Chrome extension shows "Connected to browser-tools-server" status
 
 **Data Collection Protocol**:
 1. **Console Monitoring**: Automatic capture of browser console logs, warnings, and errors

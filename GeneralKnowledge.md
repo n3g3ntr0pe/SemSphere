@@ -32,14 +32,18 @@ The Browser MCP system consists of 4 interconnected components with **Cursor man
 
 **✅ CORRECT Setup (2025-07-11 Validated)**:
 - Chrome Extension installed with "On all sites" permission
-- **NO manual server startup required** - Cursor manages this via mcp.json
+- **NO manual server startup required** - Cursor manages this via `~/.cursor/mcp.json`
 - Extension automatically discovers Cursor's server (port 3026)
 - Tools available as native MCP commands in AI conversation
+- **Cursor restart required** to reload MCP configuration changes
 
 **❌ INCORRECT Setup (Common Mistake)**:
 - Manually starting: `npx @agentdeskai/browser-tools-server@latest`
 - This creates port conflicts preventing Cursor's MCP server startup
 - Results in middleware without MCP tool integration
+- Shows "0 browser tools enabled" instead of active tools
+
+**⚠️ CRITICAL ARCHITECTURE PRINCIPLE**: Never manually start the MCP server - Cursor's automatic management prevents conflicts and ensures proper protocol integration.
 
 ### Chrome Extension Configuration Interface (2025-07-11 Discovery)
 
@@ -58,6 +62,11 @@ The Browser MCP system consists of 4 interconnected components with **Cursor man
 3. No need to guess connection status - it's clearly displayed
 
 **Key Insight**: This interface proves the extension is sophisticated beyond basic data capture - it's a full MCP client with rich configuration options.
+
+**Connection Status Indicators**:
+- **✅ Working**: "Connected to browser-tools-server v1.20 at localhost:3026"
+- **❌ Failing**: "No server connection" or "Unable to connect"
+- **🔧 Troubleshooting**: Use "Test Connection" and "Auto-Discover Server" buttons
 
 ## Critical Browser Tools MCP Troubleshooting Guide
 
@@ -82,6 +91,7 @@ This might indicate another process started using this port after our check.
    - **Option A - Nuclear Reset**: `taskkill /F /IM node.exe` (kills ALL Node.js processes)
    - **Option B - Surgical**: `taskkill /F /PID [specific_pid]` (target specific server)
    - **Option C - Selective**: Kill only conflicting MCP servers, preserve other processes
+   - **Option D - Cursor Restart**: Restart Cursor to reload MCP configuration (preferred method)
 
 3. **Selective cleanup procedure** (RECOMMENDED):
    ```powershell
@@ -99,13 +109,13 @@ This might indicate another process started using this port after our check.
    # Wait for TIME_WAIT clearance
    Start-Sleep -Seconds 30
    
-   # Start single server instance
-   npx @agentdeskai/browser-tools-server@latest
-   
-   # Verify single server binding
+   # RESTART CURSOR (Recommended) - Let Cursor manage MCP server
+   # OR manual verification (if Cursor unavailable):
    netstat -ano | findstr :3025
    Test-NetConnection -ComputerName localhost -Port 3025
    ```
+
+**⚠️ CRITICAL UPDATE**: Do NOT manually start the server with `npx @agentdeskai/browser-tools-server@latest` - this conflicts with Cursor's automatic MCP management.
 
 ### Dual Server Detection & Resolution
 
