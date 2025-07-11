@@ -218,6 +218,128 @@ Test-NetConnection -ComputerName localhost -Port 3025
 | **Strengths** | Native Windows, admin capabilities | Unix tooling, package managers | File editing, integrated |
 | **Limitations** | Unix command failures | User login required | Workspace only |
 
+## PowerShell Session Accumulation - Critical System Issue
+
+### The Hidden Resource Drain Problem
+
+**Real-World Discovery** (SemSphere Project - 2025-01-11): 25 PowerShell processes consuming 2.3GB RAM were discovered during routine cleanup, representing a 92% process reduction opportunity.
+
+**Root Cause Analysis:**
+- **PSReadLine Buffer Conflicts**: Version 2.3.6+ buffer management issues cause shell instability
+- **Cursor Terminal Management**: "Popped out into background" behavior creates new shell instances
+- **Cascade Effect**: Each failed/unstable shell spawns replacement instances exponentially
+- **Silent Accumulation**: Processes persist across sessions without user awareness
+
+### Symptoms of PowerShell Session Accumulation
+
+**Performance Indicators:**
+- Slow system response during development
+- High memory usage (2GB+ from terminals alone)
+- PSReadLine buffer exceptions appearing frequently
+- Multiple PowerShell processes in Task Manager
+
+**Error Patterns:**
+```
+System.ArgumentOutOfRangeException: The value must be greater than or equal to zero 
+and less than the console's buffer size
+```
+
+**Cursor Behavior:**
+- Frequent "new shell will be started at the project root" messages
+- Commands showing "popped out into background by the user"
+- Background processes creating orphaned shell instances
+
+### Detection and Cleanup Protocol
+
+**Quick Detection:**
+```powershell
+# Count PowerShell processes
+(tasklist | findstr powershell).Count
+
+# List all PowerShell processes with memory usage
+tasklist /FI "IMAGENAME eq powershell.exe" /FO TABLE
+```
+
+**Current Session Identification:**
+```powershell
+# Get current PowerShell PID
+echo "Current session: $PID"
+
+# List all except current
+tasklist /FI "IMAGENAME eq powershell.exe" /FO CSV | findstr /V "$PID"
+```
+
+**Safe Cleanup Procedure:**
+```powershell
+# Method 1: PowerShell cmdlet (may trigger PSReadLine issues)
+Get-Process powershell | Where-Object {$_.Id -ne $PID} | Stop-Process -Force
+
+# Method 2: Direct taskkill (more reliable)
+# Get PIDs first, then terminate individually
+taskkill /F /PID [inactive_pid_1] /PID [inactive_pid_2] /PID [inactive_pid_3]
+```
+
+### Prevention Strategies
+
+**Immediate Actions:**
+1. **Weekly Monitoring**: Check PowerShell process count during development
+2. **Proactive Cleanup**: Remove inactive sessions before they accumulate
+3. **PSReadLine Configuration**: Disable problematic features
+   ```powershell
+   Set-PSReadLineOption -PredictionSource None
+   ```
+
+**Long-term Solutions:**
+1. **Development Workflow**: Include terminal cleanup in project setup/teardown
+2. **System Monitoring**: Track memory usage patterns across development sessions
+3. **Cursor Configuration**: Investigate terminal reuse settings and background behavior
+
+### Resource Impact Analysis
+
+**Memory Consumption Pattern:**
+- **Typical Session**: 95-155MB per PowerShell instance
+- **Accumulated Impact**: 25 sessions = 2.3GB RAM consumption
+- **Hidden Cost**: Silent resource drain without user notification
+
+**Performance Recovery:**
+- **Process Reduction**: 92% (25 → 2 processes)
+- **Memory Recovery**: 91% (2.3GB → 196MB)
+- **System Responsiveness**: Immediate improvement post-cleanup
+
+### Emergency Recovery Procedure
+
+**When System Becomes Unresponsive:**
+1. **Task Manager Access**: Ctrl+Shift+Esc
+2. **Process Identification**: Sort by memory usage, locate PowerShell processes
+3. **Selective Termination**: End processes except current active session
+4. **Service Verification**: Ensure development servers (Node.js) preserved
+
+**Nuclear Option** (Development Environment Only):
+```powershell
+# WARNING: Kills ALL PowerShell processes
+taskkill /F /IM powershell.exe
+# Then restart development environment
+```
+
+### Integration with Development Workflow
+
+**Pre-Development Checklist:**
+- [ ] Check PowerShell process count
+- [ ] Verify available system memory
+- [ ] Clean up previous session artifacts
+
+**Post-Development Cleanup:**
+- [ ] Terminate inactive PowerShell sessions
+- [ ] Stop unnecessary background processes
+- [ ] Verify essential services still running
+
+**Weekly Maintenance:**
+- [ ] Full PowerShell session audit
+- [ ] System memory usage analysis
+- [ ] Development environment optimization
+
+This issue demonstrates how hidden resource consumption can severely impact development performance while remaining invisible to normal monitoring.
+
 ### Command Syntax Examples
 
 **File listing:**
