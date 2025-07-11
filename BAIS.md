@@ -103,6 +103,72 @@ For diagnostic reporting provide error context with detailed command and environ
 
 ---
 
+## GITHUB_INTEGRATION - Version Control Operational Intelligence
+
+**Primary Integration Modes**: Cursor provides dual-path GitHub connectivity through UI integration and command-line interface. Each mode exhibits distinct reliability characteristics and operational constraints requiring adaptive selection strategies.
+
+**Cursor UI Integration** operates through Tools and Integrations settings with browser-based OAuth authentication flow. Its capabilities include visual git operations, one-click repository publishing, and integrated commit management through Source Control panel. Its limitations include authentication persistence issues, network dependency sensitivity, and integration state volatility. Safety bounds include workspace repository scope and user credential isolation.
+
+**Command Line Git Interface** operates through terminal access with direct HTTPS authentication using Personal Access Tokens. Its capabilities include full git command suite, reliable authentication persistence, and cross-platform compatibility. Its limitations include manual token management and terminal proficiency requirements. Safety bounds include credential exposure through command history and token scope management.
+
+### AUTHENTICATION_STRATEGY - Multi-Modal Approach
+
+**UI Authentication Flow**:
+1. **Primary**: Cursor Settings → Tools and Integrations → GitHub
+2. **Authentication URL Fix**: Manually prepend `www.` to redirect URLs when domain resolution fails
+3. **Browser Integration**: Complete OAuth flow in system default browser
+4. **Session Persistence**: Variable reliability requiring periodic re-authentication
+
+**PAT Authentication Flow**:
+1. **Token Generation**: GitHub Settings → Developer settings → Personal access tokens
+2. **Scope Configuration**: repo, workflow, and organizational access as required
+3. **Terminal Authentication**: Username with PAT as password replacement
+4. **Credential Storage**: System credential manager with automatic persistence
+
+### OPERATIONAL_PROCEDURES - Version Control Workflows
+
+**Repository Initialization Sequence**:
+1. **Local Repository**: `git init` in project workspace
+2. **File Staging**: `git add .` with .gitignore exclusions
+3. **Initial Commit**: `git commit -m "descriptive message"`
+4. **Remote Configuration**: Manual repository creation via GitHub web interface
+5. **Remote Linking**: `git remote add origin https://github.com/username/repository.git`
+6. **Initial Push**: `git push -u origin master` with PAT authentication
+
+**Integration Testing Protocol**:
+1. **UI Test**: Attempt Cursor integration operations through Source Control panel
+2. **Fallback Detection**: Monitor terminal for command execution evidence
+3. **Command Line Verification**: `git status`, `git log`, `git remote -v` for state confirmation
+4. **Hybrid Operation**: Use UI for convenience operations, CLI for critical workflows
+
+**Failure Recovery Strategies**:
+- **Authentication Failure**: Regenerate PAT tokens and update credential storage
+- **Integration Disconnect**: Retry with www-prefixed authentication URLs
+- **Network Issues**: Implement HTTP/1.1 fallback via `cursor.general.disableHttp2`
+- **Repository Not Found**: Verify username accuracy and repository existence
+
+### OPERATIONAL_INTELLIGENCE - Strategic Recommendations
+
+**For Development Workflows**: Prefer command line git for critical operations including initial setup, complex merges, and troubleshooting scenarios. Use Cursor integration for routine commits and status monitoring when authentication remains stable.
+
+**For Authentication Management**: Maintain current PAT tokens with appropriate scopes. Document token rotation procedures. Implement credential backup strategies through multiple authentication methods.
+
+**For Collaborative Projects**: Establish consistent workflow patterns that accommodate both integration modes. Document repository access patterns and authentication requirements for team environments.
+
+**Integration Reliability Matrix**:
+- **UI Integration**: Suitable for routine operations when authenticated, fallback required for critical tasks
+- **Command Line**: Primary method for setup, troubleshooting, and complex operations
+- **Hybrid Approach**: Optimal strategy combining UI convenience with CLI reliability
+
+**Best Practices**:
+- Test integration authentication before critical operations
+- Maintain command line proficiency for fallback scenarios
+- Document repository URLs and access patterns for consistency
+- Implement regular authentication validation procedures
+- Use descriptive commit messages following project conventions
+
+---
+
 ## CONTEXT_REFRESH_PROCEDURE (Subset of Full Boot)
 
 Context refresh sequence includes role reconfirmation to reload ISE identity and authority level, tool reconfiguration to verify tool availability and update configurations, safety protocol reload to refresh restriction framework and safety wrappers, and operational state reset to clear degraded context while maintaining session continuity.
