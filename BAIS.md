@@ -233,16 +233,24 @@ For diagnostic reporting provide error context with detailed command and environ
 
 **Primary Integration Architecture**: Four-component system with Chrome Extension ↔ Middleware Server ↔ MCP Protocol Handler ↔ Cursor Integration. Each component exhibits specific failure modes requiring systematic troubleshooting and recovery procedures.
 
-**⚠️ CRITICAL ARCHITECTURE CLARIFICATION** (2025-07-11): **Two separate components require management**:
+**⚠️ CRITICAL ARCHITECTURE CLARIFICATION** (2025-07-11, Ubuntu WSL Verified): **Two separate components require management**:
 
 1. **MCP Protocol Handler**: Managed automatically by Cursor via `~/.cursor/mcp.json` configuration
 2. **Middleware Server (Browser Connector)**: Requires manual startup with `npx @agentdeskai/browser-tools-server@latest`
 
-**CORRECT Setup Process**:
+**CORRECT Setup Process - 100% VERIFIED**:
 1. **Chrome Extension**: Install with "On all sites" permission
 2. **Middleware Server**: Start manually with `npx @agentdeskai/browser-tools-server@latest` on port 3025
 3. **MCP Protocol**: Cursor automatically manages tool integration via `~/.cursor/mcp.json`
 4. **Verification**: Chrome extension connects to middleware, MCP tools become available
+
+**✅ COMPREHENSIVE VERIFICATION RESULTS** (2025-07-11):
+- **Package Versions**: Both @agentdeskai/browser-tools-server@1.2.1 and @agentdeskai/browser-tools-mcp@1.2.1 confirmed identical
+- **Dependency Compatibility**: Identical shared dependencies (@modelcontextprotocol/sdk@^1.4.1, express@^4.21.2, ws@^8.18.0)
+- **Configuration File**: ~/.cursor/mcp.json must specify @agentdeskai/browser-tools-mcp@latest (NOT browser-tools-server)
+- **Auto-Discovery Algorithm**: MCP server scans hosts [127.0.0.1, 127.0.0.1, localhost] ports [3025-3035] sequentially
+- **Port Fallback**: Middleware server auto-tries 3025→3026→3027 when ports occupied
+- **Cross-Platform Tested**: Ubuntu WSL, PowerShell, and native Windows environments all validated
 
 **Chrome Extension** operates through browser WebSocket connection with capabilities including DOM capture, console log extraction, network request monitoring, and screenshot generation. Its limitations include permission dependency, browser restart requirements, and extension state volatility. Safety bounds include same-origin policy enforcement and content security policy compliance.
 
@@ -285,6 +293,32 @@ npx @agentdeskai/browser-tools-server@latest
 3. **Middleware Server Startup**: Run `npx @agentdeskai/browser-tools-server@latest` to start browser connector
 4. **MCP Protocol Integration**: Cursor automatically provides MCP tool access via `~/.cursor/mcp.json`
 5. **Connection Verification**: Check Chrome extension shows "Connected to browser-tools-server" status
+
+**✅ ADVANCED EDGE CASE HANDLING** (2025-07-11 Verification):
+
+**Configuration File Issues**:
+- **Missing ~/.cursor/mcp.json**: Auto-generate with correct package specification
+- **Wrong Package Reference**: Use @agentdeskai/browser-tools-mcp@latest (NOT browser-tools-server@latest)
+- **UTF-8 BOM Encoding**: File created with Windows BOM markers - no functional impact
+- **File Permissions**: Standard user permissions sufficient, no admin elevation required
+
+**Auto-Discovery Failure Scenarios**:
+- **No Middleware Server**: MCP server reports "Error checking 127.0.0.1:3025: fetch failed" for all ports
+- **Port Scanning Sequence**: Exact hosts [127.0.0.1, 127.0.0.1, localhost] and ports [3025-3035] tested
+- **Discovery Timeout**: Each port check fails immediately with "fetch failed" when no server present
+- **Success Criteria**: "Successfully discovered server at 127.0.0.1:3025" confirms connection
+
+**Port Conflict Resolution**:
+- **Multiple Server Detection**: Middleware server reports "Port 3025 is in use, trying next port..."
+- **Fallback Behavior**: Automatic progression to 3026, 3027, etc. until available port found
+- **Conflict Persistence**: "Port 3026 is still in use, despite our checks!" indicates rapid port reuse
+- **Recovery Strategy**: Complete Node.js process cleanup with `taskkill /F /IM node.exe` followed by single server restart
+
+**Cross-Platform Compatibility**:
+- **Ubuntu WSL**: Full functionality verified with Node.js v22.17.0, npm 10.9.2
+- **Windows PowerShell**: Native Windows environment with identical behavior
+- **Package Availability**: Both packages accessible via npm registry from any platform
+- **File System Integration**: Windows/Linux file path resolution handled automatically by WSL
 
 **Data Collection Protocol**:
 1. **Console Monitoring**: Automatic capture of browser console logs, warnings, and errors
