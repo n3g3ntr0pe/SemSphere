@@ -30,20 +30,20 @@ The Browser MCP system consists of 4 interconnected components with **Cursor man
 3. **MCP Server**: Integrated into Cursor, exposes native browser tools commands
 4. **Cursor Integration**: AI assistant accesses tools through MCP protocol (NOT HTTP)
 
-**✅ CORRECT Setup (2025-07-11 Validated)**:
+**✅ CORRECT Setup (2025-07-11 Re-Validated)**:
 - Chrome Extension installed with "On all sites" permission
-- **NO manual server startup required** - Cursor manages this via `~/.cursor/mcp.json`
-- Extension automatically discovers Cursor's server (port 3026)
-- Tools available as native MCP commands in AI conversation
-- **Cursor restart required** to reload MCP configuration changes
+- **Manual middleware server startup REQUIRED**: `npx @agentdeskai/browser-tools-server@latest`
+- Extension connects to middleware server on port 3025 (fallback 3026)
+- Cursor provides MCP tool integration automatically via `~/.cursor/mcp.json`
+- **Two-component architecture**: Middleware Server + MCP Protocol Handler
 
 **❌ INCORRECT Setup (Common Mistake)**:
-- Manually starting: `npx @agentdeskai/browser-tools-server@latest`
-- This creates port conflicts preventing Cursor's MCP server startup
-- Results in middleware without MCP tool integration
-- Shows "0 browser tools enabled" instead of active tools
+- Assuming Cursor automatically starts the middleware server
+- Missing the manual server startup step
+- Expecting tools to work without the browser connector running
+- Shows "Failed to discover browser connector server" error
 
-**⚠️ CRITICAL ARCHITECTURE PRINCIPLE**: Never manually start the MCP server - Cursor's automatic management prevents conflicts and ensures proper protocol integration.
+**⚠️ CRITICAL ARCHITECTURE PRINCIPLE**: TWO separate components - Middleware Server (manual startup) + MCP Protocol Handler (Cursor managed).
 
 ### Chrome Extension Configuration Interface (2025-07-11 Discovery)
 
@@ -90,8 +90,8 @@ This might indicate another process started using this port after our check.
 2. **Strategic cleanup options**:
    - **Option A - Nuclear Reset**: `taskkill /F /IM node.exe` (kills ALL Node.js processes)
    - **Option B - Surgical**: `taskkill /F /PID [specific_pid]` (target specific server)
-   - **Option C - Selective**: Kill only conflicting MCP servers, preserve other processes
-   - **Option D - Cursor Restart**: Restart Cursor to reload MCP configuration (preferred method)
+   - **Option C - Selective**: Kill only duplicate middleware servers, preserve development servers
+   - **Option D - Clean Restart**: Single middleware server startup after port cleanup
 
 3. **Selective cleanup procedure** (RECOMMENDED):
    ```powershell
@@ -115,7 +115,7 @@ This might indicate another process started using this port after our check.
    Test-NetConnection -ComputerName localhost -Port 3025
    ```
 
-**⚠️ CRITICAL UPDATE**: Do NOT manually start the server with `npx @agentdeskai/browser-tools-server@latest` - this conflicts with Cursor's automatic MCP management.
+**⚠️ CRITICAL UPDATE**: ALWAYS manually start the middleware server with `npx @agentdeskai/browser-tools-server@latest` - this is required for Chrome extension connectivity.
 
 ### Dual Server Detection & Resolution
 
@@ -276,12 +276,12 @@ curl http://localhost:3025/console  # Incorrect - bypasses MCP protocol
 - Cursor manages tool invocation and data retrieval
 
 **Architecture Distinction:**
-- **Middleware Server**: Data collection and browser communication
-- **MCP Protocol**: Tool exposure and AI assistant integration  
-- **HTTP Endpoints**: Internal communication, not user-facing
+- **Middleware Server**: Data collection and browser communication (manual startup required)
+- **MCP Protocol Handler**: Tool exposure and AI assistant integration (Cursor managed)
+- **HTTP Endpoints**: Internal communication between components
 - **Native Tools**: AI assistant interface for browser interaction
 
-**Verification Method**: Check Chrome extension shows "Connected" status and tools appear in Cursor's available MCP commands.
+**Verification Method**: Check Chrome extension shows "Connected" status and MCP tools respond successfully in conversation.
 
 ### Complete Troubleshooting Session Workflow (2025-07-11 SemSphere Project)
 
@@ -308,11 +308,11 @@ curl http://localhost:3025/console  # Incorrect - bypasses MCP protocol
   - Fixed function return type annotations
 - Result: Clean compilation and working JavaScript
 
-**Phase 3: MCP Architecture Correction**
-- Problem: Manually started server prevented Cursor's MCP integration
-- Action: Terminated manual server (PID 39068) to free port 3025
-- Discovery: Cursor automatically started MCP server on port 3026 (fallback)
-- Verification: `tasklist` showed Cursor-managed process with MCP integration
+**Phase 3: Middleware Server Resolution**
+- Problem: No middleware server running for Chrome extension connectivity
+- Action: Started middleware server (PID 31192) on port 3025
+- Discovery: Two-component architecture - middleware server + MCP protocol handler
+- Verification: Chrome extension connected to middleware, MCP tools became available
 
 **Phase 4: Chrome Extension Reconnection**
 - Chrome extension automatically discovered Cursor's server on port 3026
@@ -322,7 +322,7 @@ curl http://localhost:3025/console  # Incorrect - bypasses MCP protocol
 **Success Indicators Achieved:**
 - ✅ Clean TypeScript compilation (`npm run build` success)
 - ✅ JavaScript errors eliminated in browser console
-- ✅ Cursor MCP server operational (PID 15796 on port 3026)
+- ✅ Middleware server operational (PID 31192 on port 3025)
 - ✅ Chrome extension connected with rich configuration interface
 - ✅ MCP tools available natively to AI assistant
 

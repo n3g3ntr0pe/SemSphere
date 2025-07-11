@@ -233,13 +233,16 @@ For diagnostic reporting provide error context with detailed command and environ
 
 **Primary Integration Architecture**: Four-component system with Chrome Extension ↔ Middleware Server ↔ MCP Protocol Handler ↔ Cursor Integration. Each component exhibits specific failure modes requiring systematic troubleshooting and recovery procedures.
 
-**⚠️ CRITICAL ARCHITECTURE DISCOVERY** (2025-07-11): **Cursor manages the MCP server automatically** through `~/.cursor/mcp.json` configuration. Manual server startup creates port conflicts and prevents proper MCP integration.
+**⚠️ CRITICAL ARCHITECTURE CLARIFICATION** (2025-07-11): **Two separate components require management**:
+
+1. **MCP Protocol Handler**: Managed automatically by Cursor via `~/.cursor/mcp.json` configuration
+2. **Middleware Server (Browser Connector)**: Requires manual startup with `npx @agentdeskai/browser-tools-server@latest`
 
 **CORRECT Setup Process**:
 1. **Chrome Extension**: Install with "On all sites" permission
-2. **Cursor MCP Configuration**: Automatically reads `~/.cursor/mcp.json` and manages server
-3. **NO Manual Server**: Never run `npx @agentdeskai/browser-tools-server@latest` manually
-4. **Cursor Restart**: Required to reload MCP configuration after changes
+2. **Middleware Server**: Start manually with `npx @agentdeskai/browser-tools-server@latest` on port 3025
+3. **MCP Protocol**: Cursor automatically manages tool integration via `~/.cursor/mcp.json`
+4. **Verification**: Chrome extension connects to middleware, MCP tools become available
 
 **Chrome Extension** operates through browser WebSocket connection with capabilities including DOM capture, console log extraction, network request monitoring, and screenshot generation. Its limitations include permission dependency, browser restart requirements, and extension state volatility. Safety bounds include same-origin policy enforcement and content security policy compliance.
 
@@ -250,10 +253,10 @@ For diagnostic reporting provide error context with detailed command and environ
 **Port Conflict Resolution (Primary Failure Mode)**:
 1. **Detection**: `netstat -ano | findstr ":302"` for port 3025/3026 usage
 2. **Process Identification**: `tasklist | findstr node.exe` for server instances
-3. **Root Cause**: Manual server startup conflicts with Cursor's automatic MCP server management
-4. **Termination**: `taskkill /PID [process_id] /F` for clean shutdown of manual servers
-5. **Restart Cursor**: Required to allow proper MCP server initialization
-6. **Verification**: Check Cursor shows "browser tools enabled" instead of "0 browser tools enabled"
+3. **Root Cause**: Multiple middleware server instances competing for ports 3025/3026
+4. **Selective Termination**: `taskkill /PID [process_id] /F` targeting duplicate middleware servers
+5. **Clean Restart**: Start single middleware server instance with `npx @agentdeskai/browser-tools-server@latest`
+6. **Verification**: Chrome extension shows "Connected" status and MCP tools become available
 
 **Server State Validation**:
 ```powershell
@@ -276,11 +279,11 @@ npx @agentdeskai/browser-tools-server@latest
 
 ### OPERATIONAL_PROCEDURES - Data Capture & Analysis
 
-**Server Initialization Sequence** (CURSOR MANAGED):
+**Server Initialization Sequence** (DUAL COMPONENT MANAGEMENT):
 1. **Environment Check**: Verify Chrome extension installed and permissions configured
-2. **MCP Configuration**: Ensure `~/.cursor/mcp.json` contains browser-tools configuration
-3. **Port Availability**: Terminate any manual server processes conflicting with Cursor's MCP server
-4. **Cursor Restart**: Required to reload MCP configuration and start server automatically
+2. **Port Availability**: Check ports 3025/3026 available with `netstat -ano | findstr ":302"`
+3. **Middleware Server Startup**: Run `npx @agentdeskai/browser-tools-server@latest` to start browser connector
+4. **MCP Protocol Integration**: Cursor automatically provides MCP tool access via `~/.cursor/mcp.json`
 5. **Connection Verification**: Check Chrome extension shows "Connected to browser-tools-server" status
 
 **Data Collection Protocol**:
