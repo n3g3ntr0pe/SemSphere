@@ -147,3 +147,109 @@ The Browser MCP system consists of 4 interconnected components:
 ---
 
 **Document Purpose**: Reference guide for Chief Systems Engineer managing AI assistant deployment and operations in Cursor development environment. 
+
+## GitHub Integration Challenges & Solutions
+
+### Cursor GitHub Integration vs Command Line Git
+
+| Aspect | Cursor UI Integration | Command Line Git | Recommendation |
+|--------|----------------------|------------------|----------------|
+| **Authentication** | OAuth flow through browser | Personal Access Token (PAT) | Use PAT for reliability |
+| **Reliability** | Variable, connection sensitive | Consistent, credential-based | CLI for critical operations |
+| **User Experience** | Visual, point-and-click | Terminal proficiency required | UI for routine, CLI for setup |
+| **Troubleshooting** | Limited diagnostic info | Full command visibility | CLI for debugging |
+| **Session Persistence** | Requires periodic re-auth | Credential manager storage | CLI avoids session issues |
+
+### Authentication Issues & Fixes
+
+**Common Cursor Integration Problems:**
+- Authentication URL failures: `cursor.sh` domain resolution issues
+- Session persistence: Integration disconnects unpredictably  
+- Network sensitivity: Corporate firewalls and proxy conflicts
+- Silent failures: Operations attempt but don't complete
+
+**Proven Solutions:**
+1. **URL Fix**: Manually add `www.` prefix to redirect URLs (`https://www.cursor.sh/...`)
+2. **HTTP/2 Fallback**: Enable `cursor.general.disableHttp2` for proxy environments
+3. **PAT Authentication**: Generate token with `repo`, `workflow` scopes
+4. **Hybrid Approach**: Use UI for monitoring, CLI for operations
+
+### Repository Setup Workflow
+
+**Initial Repository Creation Process:**
+```bash
+# 1. Initialize local repository
+git init
+git add .
+git commit -m "Initial commit: [descriptive message]"
+
+# 2. Create repository on GitHub (manual web interface)
+# - Navigate to github.com/new
+# - DO NOT initialize with README (files already exist)
+# - Note exact username/repository name
+
+# 3. Link and push
+git remote add origin https://github.com/[username]/[repository].git
+git push -u origin master
+# Enter username and PAT when prompted
+```
+
+**Critical Gotchas:**
+- **Username mismatch**: GitHub username may differ from expected name
+- **Repository not found**: Manual creation required before push
+- **Authentication method**: PAT required (passwords deprecated August 2021)
+- **Remote URL accuracy**: Case-sensitive repository names
+
+### Troubleshooting GitHub Issues
+
+**Error: "repository not found"**
+- Verify exact GitHub username via profile URL
+- Confirm repository exists and name matches exactly
+- Check remote URL: `git remote get-url origin`
+- Update remote if needed: `git remote set-url origin [correct-url]`
+
+**Error: "Authentication failed"**
+- GitHub no longer accepts password authentication
+- Generate Personal Access Token (PAT) in GitHub Settings
+- Use PAT as password when prompted
+- Ensure token has appropriate scopes (repo, workflow)
+
+**Cursor integration silent failures:**
+- Check git status: `git status`, `git log --oneline`
+- Verify no commands executed in terminal history
+- Fall back to command line for reliable operations
+- Consider www-prefix authentication URL fix
+
+### Integration Testing Protocol
+
+**Before Critical Operations:**
+1. Test authentication: Try simple `git status` or Cursor sync button
+2. Verify connectivity: Check network and proxy settings
+3. Prepare fallback: Have PAT ready for CLI authentication
+4. Monitor execution: Watch terminal for actual command execution
+
+**Post-Operation Verification:**
+1. Confirm changes: `git log --oneline`, check GitHub web interface
+2. Validate remotes: `git remote -v`
+3. Test future operations: Ensure authentication persists
+
+### Best Practices for Mixed Environment
+
+**When to Use Cursor Integration:**
+- ✅ Routine commits and status checks (when authenticated)
+- ✅ Visual diff review and staging
+- ✅ Branch management through UI
+
+**When to Use Command Line:**
+- ✅ Initial repository setup and configuration
+- ✅ Complex merge operations and conflict resolution
+- ✅ Troubleshooting authentication or connection issues
+- ✅ Any operation requiring guaranteed execution
+
+**Recommended Workflow:**
+1. **Setup phase**: Use CLI for initial repository creation and configuration
+2. **Development phase**: Use Cursor UI for routine commits when stable
+3. **Troubleshooting phase**: Fall back to CLI when integration fails
+4. **Critical operations**: Always use CLI for important pushes/merges
+
+--- 
