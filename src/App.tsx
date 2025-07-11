@@ -1,4 +1,3 @@
-import React from 'react'
 import ConcreteAbstractSphere from './ConcreteAbstractSphere'
 
 function App() {

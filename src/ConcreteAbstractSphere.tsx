@@ -30,6 +30,12 @@ interface AbstractionLayer {
   examples: string;
 }
 
+interface SemanticAnalysis {
+  word: string;
+  abstractionLevel: number;
+  dimensions: Record<string, number>;
+}
+
 const ConcreteAbstractSphere = () => {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -65,7 +71,7 @@ const ConcreteAbstractSphere = () => {
   ];
 
   // Semantic analysis to determine word positioning
-  const analyzeWordSemantics = (word: string) => {
+  const analyzeWordSemantics = (word: string): SemanticAnalysis => {
     const lower = word.toLowerCase();
     
     // Determine abstraction level (radius)
@@ -150,7 +156,7 @@ const ConcreteAbstractSphere = () => {
   };
 
   // Comprehensive vocabulary organized by semantic properties
-  const vocabularyByAbstraction = {
+  const vocabularyByAbstraction: Record<number, string[]> = {
     1: ['stone', 'rock', 'apple', 'tree', 'chair', 'table', 'car', 'house', 'book', 'phone', 'water', 'fire'],
     2: ['sand', 'liquid', 'solid', 'gas', 'metal', 'wood', 'plastic', 'glass', 'fabric', 'paper'],
     3: ['hard', 'soft', 'hot', 'cold', 'big', 'small', 'fast', 'slow', 'silicon', 'carbon', 'oxygen'],
@@ -345,7 +351,7 @@ const ConcreteAbstractSphere = () => {
   };
 
   // Convert semantic analysis to 3D spherical coordinates
-  const semanticsToPosition = (analysis: { abstractionLevel: number; dimensions: Record<string, number> }): [number, number, number] => {
+  const semanticsToPosition = (analysis: SemanticAnalysis): [number, number, number] => {
     const radius = abstractionLayers[analysis.abstractionLevel - 1].radius;
     
     // Calculate weighted angular position based on dimensions
